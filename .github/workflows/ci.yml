@@ -1,0 +1,32 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate required documentation
+        run: |
+          test -s AGENTS.md
+          test -s docs/functional-spec.md
+          test -s docs/technical-spec.md
+      - name: Set up Node.js (after application scaffold)
+        if: ${{ hashFiles('package-lock.json') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install and validate application (after scaffold)
+        if: ${{ hashFiles('package-lock.json') != '' }}
+        run: |
+          npm ci
+          npm run lint --if-present
+          npm run typecheck --if-present
+          npm run test --if-present
+          npm run build --if-present
