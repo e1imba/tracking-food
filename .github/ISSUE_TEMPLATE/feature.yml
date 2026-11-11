@@ -1,0 +1,22 @@
+name: Feature
+description: Feature task with acceptance criteria
+title: "[Feature] "
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Goal
+      description: What should be delivered?
+    validations:
+      required: true
+  - type: textarea
+    id: criteria
+    attributes:
+      label: Acceptance criteria
+      description: Testable conditions of completion
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Technical notes and constraints
