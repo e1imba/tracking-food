@@ -35,4 +35,12 @@ For each non-trivial proposal, state **DECIDE NOW**, **DEFER (with explicit trig
 When suggesting architecture or feature work in issues/PRs, include only material decisions and their triggers; do not produce ceremony or ADRs for trivial implementation details. Keep the owner's current phase and scope as the primary source of truth.
 
 ## Task flow
-Read specs -> plan -> implement -> validate -> inspect diff -> open PR for human review.
+Follow `docs/workflow.md`: chat refinement -> owner-confirmed issue -> separate
+coding session -> linked PR -> separate review session -> fixes in coding session
+-> owner review and manual merge. The owner starts each session explicitly.
+Use `refine-ticket`, `implement-feature` and `review-code` skills for their roles.
+Keep acceptance criteria to 3–5 short, testable bullets. Issues and PRs preserve
+handoff context; do not rely on earlier session memory. Review tasks authorize
+posting findings on that PR. Do not auto-start other agents or sessions.
+Read current project rules on every task; approved changes to review expectations
+belong in the relevant skill/specification so subsequent reviews use them.

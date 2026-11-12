@@ -1,22 +1,29 @@
 name: Feature
-description: Feature task with acceptance criteria
+description: Small task refined in chat before a separate coding session
 title: "[Feature] "
 body:
   - type: textarea
     id: objective
     attributes:
-      label: Goal
-      description: What should be delivered?
+      label: Goal and scope
+      description: Briefly describe the outcome and what belongs in this ticket.
     validations:
       required: true
   - type: textarea
     id: criteria
     attributes:
       label: Acceptance criteria
-      description: Testable conditions of completion
+      description: 3–5 short, testable bullets describing delivered behavior.
+      placeholder: "- [ ] Observable outcome"
     validations:
       required: true
   - type: textarea
     id: notes
     attributes:
-      label: Technical notes and constraints
+      label: References, decisions and blockers
+      description: Relevant spec sections and only necessary technical notes. Resolve implementation blockers before handoff.
+  - type: textarea
+    id: handoff
+    attributes:
+      label: Owner confirmation
+      description: Record scope confirmation from chat before coding. Submission alone does not mean approval or launch a session.

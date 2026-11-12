@@ -1,6 +1,6 @@
 # Tracking Food — Tehnička dokumentacija
 
-**Verzija 0.3 · 11.11.2026. u 12:50 (Europe/Belgrade)**
+**Verzija 0.4 · 12.11.2026. (Europe/Belgrade)**
 
 Predlog arhitekture i plan razvoja za MVP. Funkcionalni zahtevi su u dokumentu „Funkcionalna dokumentacija“ (u repozitorijumu `docs/functional-spec.md`).
 
@@ -111,6 +111,7 @@ Codex je glavni razvojni agent, a GitHub izvor istine za kod, zadatke, dokumenta
 | Putanja | Svrha |
 |---|---|
 | `AGENTS.md` | Stalna projektna pravila: izvori zahteva, arhitektura, bezbednost, kvalitet i granice autonomije |
+| `.agents/skills/refine-ticket/SKILL.md` | Razrada ideje u kratak dogovoren tiket |
 | `.agents/skills/implement-feature/SKILL.md` | Postupak za razvoj jedne funkcionalnosti od zahteva do testova |
 | `.agents/skills/database-change/SKILL.md` | Postupak za promene Drizzle šeme i bezbedne migracije |
 | `.agents/skills/write-tests/SKILL.md` | Unit, integracioni i Playwright E2E scenariji |
@@ -121,15 +122,24 @@ Codex je glavni razvojni agent, a GitHub izvor istine za kod, zadatke, dokumenta
 
 `SKILL.md` su instrukcije za agenta, ne samostalni procesi ili nezavisni AI agenti. `.github/workflows/ci.yml` je GitHub Actions konfiguracija, ne Markdown dokument.
 
-### 12.3 Planirani tok jednog zadatka
-1. Korisnik definiše GitHub Issue sa jasnim kriterijumima prihvatanja.
-2. Codex učitava `AGENTS.md`, funkcionalnu i tehničku specifikaciju i relevantan skill.
-3. Agent predlaže kratak plan i navodi otvorene odluke; ne izmišlja zahteve.
-4. Implementira izmenu na grani, dodaje testove i izvršava dostupne provere.
-5. Priprema PR sa opisom izmena, rizicima, testovima i eventualnim migracijama.
-6. GitHub Actions proverava PR; korisnik pregleda i odlučuje o spajanju.
+### 12.3 Dogovoreni tok sa odvojenim sesijama
 
-Cloud i lokalni rad koriste isti GitHub repozitorijum; treba sinhronizovati grane pre nastavka rada. Ne pokretati dva agenta nad istom granom bez koordinacije.
+Detaljan postupak i poruke za kopiranje su u [docs/workflow.md](workflow.md).
+Razrada ide kroz chat i `refine-ticket` skill; agent priprema i dopunjava GitHub
+Issue prema obe specifikacije i Laws heuristikama iz AGENTS.md. Tiket ima 3–5
+kratkih, proverljivih acceptance criteria i potvrdu vlasnika pre implementacije.
+
+Vlasnik ručno otvara zaseban Codex zadatak za implementaciju tiketa i zatim
+zaseban zadatak za nezavisan review PR-a. Ispravke zadaje prvobitnoj coding sesiji.
+Review objavljuje nalaze prema aktuelnom `review-code` skill-u; promene očekivanja
+beleže se u projektnim fajlovima. GitHub čuva kontekst između sesija.
+
+Potvrda tiketa ne pokreće novu sesiju automatski. GitHub Projects ostaje opciona
+tabla, a automatizacija se odlaže do provere jednog celog toka. Vlasnik na kraju
+ručno pregleda i spaja PR; agenti ne merge-uju niti deploy-uju.
+
+Cloud i lokalni rad koriste isti GitHub repozitorijum; sinhronizovati grane pre
+nastavka rada. Ne pokretati dva agenta nad istom granom bez koordinacije.
 
 ### 12.4 MCP integracije — kandidati za pregled
 
@@ -163,6 +173,8 @@ Početna faza je završena kada privatan repo ima obe specifikacije i starter ki
 **Otvoreno za tvoju reviziju:** izbor MCP provajdera, konkretne dozvole, izbor hostinga za cloud razvoj, granica samostalnosti agenta i da li je potrebno više skillova.
 
 ## Istorija izmena
+
+- **0.4 · 12.11.2026.** — Dogovoren ručni tok od razrade tiketa do zasebnih coding/review sesija i vlasničkog merge-a.
 
 - **0.3 · 11.11.2026. u 12:50** — Objedinjena arhitektura, razvojni tok i koraci za pokretanje projekta.
 - **0.2 · 06.11.2026.** — Dodat plan rada sa Codexom, GitHub-om i MCP integracijama.
