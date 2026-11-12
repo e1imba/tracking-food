@@ -8,3 +8,9 @@
 6. Configure PostgreSQL and authentication with non-production development resources. Secrets stay out of Git.
 
 Do not enable automatic merge or deployment. Add optional MCP integrations only as needed. Update this checklist as tasks are completed.
+
+## Session workflow
+
+Follow [the agreed workflow](workflow.md). Start each refinement, coding and review
+session manually; issue approval does not launch another task. No Projects board
+or agent orchestration is configured by these documents.
