@@ -50,8 +50,10 @@ blokator i daje pripremljen sadržaj; ne tvrdi da je nešto objavljeno.
 
 Tiket sadrži cilj, kratak obim, 3–5 proverljivih acceptance criteria i samo
 potrebne reference/tehničke napomene. Otvorene odluke koje blokiraju rad moraju
-biti razrešene pre implementacije. Dokumentacija i Laws heuristike iz AGENTS.md
-usmeravaju razradu; ne izmišljati sadržaj knjige ako nije dostupna.
+biti razrešene pre implementacije. Poveži tiket sa relevantnim odeljcima specifikacija kada postoje i koristi
+[vodič za inženjerske odluke](engineering-laws.md) za procenu šta treba rešiti sada.
+Ako tiket menja dokumentovano ponašanje ili tehničku odluku, ažuriraj odgovarajuću
+specifikaciju u istom PR-u.
 
 Review se vodi projektnim pravilima. Kada vlasnik promeni očekivanja, ažurirati
 odgovarajući skill ili specifikaciju, uz konkretno pravilo/primer, i povezati

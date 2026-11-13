@@ -1,6 +1,6 @@
 # Tracking Food — Tehnička dokumentacija
 
-**Verzija 0.4 · 12.11.2026. (Europe/Belgrade)**
+**Verzija 0.5 · 13.11.2026. (Europe/Belgrade)**
 
 Predlog arhitekture i plan razvoja za MVP. Funkcionalni zahtevi su u dokumentu „Funkcionalna dokumentacija“ (u repozitorijumu `docs/functional-spec.md`).
 
@@ -172,7 +172,37 @@ Početna faza je završena kada privatan repo ima obe specifikacije i starter ki
 
 **Otvoreno za tvoju reviziju:** izbor MCP provajdera, konkretne dozvole, izbor hostinga za cloud razvoj, granica samostalnosti agenta i da li je potrebno više skillova.
 
+## 13. Inženjerski principi i pravila odlučivanja
+
+**Referenca:** [Vodič za inženjerske odluke](engineering-laws.md) povezuje relevantna poglavlja knjige *Laws of Software Engineering* sa odlukama o razvoju Tracking Food-a.
+
+### 13.1 Podrazumevani pristup
+- **Gall’s Law:** razvijati najmanji koristan tok do upotrebljivog stanja pre širenja. Prvi vertikalni segment: prijava → unos obroka → trajno čuvanje → istorija → izmena/brisanje. Tek potom slede simptomi i Dashboard.
+- **KISS + YAGNI:** jedan Next.js projekat i PostgreSQL; nema dodatnog API-ja, mikroservisa, event bus-a, generičkog framework-a, AI integracije, mobilne aplikacije ili MCP-a bez konkretne potrebe. Ne uvoditi slojeve samo radi buduće fleksibilnosti.
+- **Tesler’s Law + Least Astonishment:** minimizovati korake za unos; podrazumevano trenutno vreme, retroaktivna korekcija, jednostavan izbor prethodnog obroka. Ne skrivati korisniku značajne promene podataka niti automatski donositi medicinske zaključke.
+- **Technical Debt + Boy Scout Rule:** kada je brži kompromis opravdan, evidentirati njegov razlog, uticaj i uslov za vraćanje; popravljati male probleme pri radu u neposrednom kodu. Ne prepravljati preventivno ceo sistem.
+- **Testing Pyramid:** više brzih testova domena, ciljano testiranje baze/autorizacije i mali broj kritičnih E2E tokova. Bez fiksnih procenata pokrivenosti kao cilja samog za sebe.
+- **First Principles + Sunk Cost:** preispitati unapred izabrane tehnologije kada postoje dokazi da ne rešavaju problem; prethodni trud nije argument da se loša odluka zadrži.
+
+### 13.2 Kada je odluka potrebna
+| Odluka | Trenutak / okidač | Šta ne radimo unapred |
+|---|---|---|
+| Autentifikacija | Pre prvog privatnog deploy-a ili implementacije zaštićenih tokova | Ne razvijamo sopstveni auth |
+| Model baze i migracije | Pre implementacije prvog unosa i istorije obroka | Ne modelujemo unapred dijetetska pravila i analitiku |
+| Hosting i backup/restore | Pre čuvanja stvarnih podataka | Ne biramo infrastrukturu prema hipotetičkom velikom opterećenju |
+| Pravilo za istoimene obroke | Tokom implementacije autocomplete-a; testirati na stvarnim primerima | Ne pravimo sistem šablona/recepata |
+| API za mobilni klijent | Tek kada postoji konkretan drugi klijent | Ne izlažemo REST API za moguću buduću aplikaciju |
+| PWA, AI, izveštaji i dijetetska pravila | Nakon korišćenja osnovnih funkcija i jasnog zahteva | Ne uvodimo njihove zavisnosti u MVP |
+| Novo arhitektonsko izdvajanje | Kada merljiv problem u održavanju, testiranju ili performansama opravda promenu | Ne uvodimo mikroservise radi predviđene skale |
+
+### 13.3 Mini-protokol za sledeće zahteve i Codex
+Pre svake značajne izmene: (1) definisati korisnički problem i kriterijum uspeha; (2) klasifikovati odluku kao **sada**, **kasnije uz okidač**, ili **nepotrebna**; (3) navesti relevantan princip, njegovu granicu i alternativu; (4) izabrati najmanju promenu koja čuva privatnost i integritet podataka; (5) dodati testove srazmerne riziku; (6) zabeležiti samo odluke koje imaju trajne posledice. Ako se principi sukobe, prednost imaju konkretni zahtevi, bezbednost podataka i dokazi iz korišćenja, a ne mehaničko praćenje jednog zakona.
+
+**Status:** Ovo je smernica za buduće predloge i review; ne znači da su pomenute funkcionalnosti implementirane niti da su otvorene odluke rešene.
+
 ## Istorija izmena
+
+- **0.5 · 13.11.2026.** — Usklađene smernice iz knjige i postojeći tok rada u repozitorijumu.
 
 - **0.4 · 12.11.2026.** — Dogovoren ručni tok od razrade tiketa do zasebnih coding/review sesija i vlasničkog merge-a.
 
