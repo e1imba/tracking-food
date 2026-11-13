@@ -2,6 +2,9 @@
 
 ## Sources of truth
 Read `docs/functional-spec.md` and `docs/technical-spec.md` before implementation. If they disagree, stop and propose a decision, rather than guessing. Record architectural decisions in `docs/decisions/`.
+When refining a ticket, link to the relevant specification sections when they
+exist. If implementation changes documented behavior or a technical decision,
+update the affected specification in the same PR.
 
 ## Scope
 Single-user, mobile-first private food and symptom journal. Phases: meals, symptoms, dashboard/timeline, then reports and dietary-plan scoring. No monetization, diagnosis, causal claims, calorie tracking or native mobile application in the MVP.
@@ -16,14 +19,11 @@ Only synthetic sample/test data. Never commit credentials, real health records o
 Small reviewable PRs, tests for changes, lint/typecheck/test/build where available, migrations for DB changes, and disclosure of any skipped checks. PRs must summarize risks and manual verification.
 
 ## Engineering decision guide — Laws of Software Engineering
-Use the principles collected in Dr Milan Milanovic's *Laws of Software Engineering* (2026) as **context-sensitive heuristics**, not mandatory rules. The project copy of the book is in the owner's TrackerFood library; agents may not have direct access to it, so apply the operational rules below without claiming to have read that copy.
-
-- **Gall's Law:** build and validate the smallest useful end-to-end workflow before extending scope. Prioritize meal entry -> persistence -> history -> edit/delete; then symptoms, then dashboard.
-- **KISS / YAGNI:** choose the simplest design meeting current acceptance criteria. Do not add microservices, a separate REST API, generic abstractions, queues, AI, PWA, mobile client, or speculative extensibility without a demonstrated requirement.
-- **Tesler's Law / Principle of Least Astonishment:** absorb avoidable complexity in the application so that meal and symptom entry remains predictable and fast. Default to current local time with retroactive editing; never silently overwrite data or imply medical causation.
-- **Technical Debt / Boy Scout Rule:** acknowledge necessary shortcuts with their reason and a concrete revisit trigger. Improve code in the area being changed; avoid unrelated rewrites.
-- **Testing Pyramid:** prioritize focused domain tests, integration tests for DB access and authorization, and a small set of critical end-to-end paths. Do not optimize for a coverage percentage in isolation.
-- **First-Principles Thinking / Sunk Cost Fallacy:** evaluate tools and abstractions against actual constraints and evidence; past implementation effort is not itself a reason to keep a poor choice.
+Read `docs/engineering-laws.md` during ticket refinement and when proposing or
+reviewing a material engineering decision. Consult the linked author reference
+for the relevant principle when reachable. If the site is unavailable, use the
+repository guide and cite the source actually consulted. Explain when the
+decision is needed and what would change it.
 
 ### Decision timing
 For each non-trivial proposal, state **DECIDE NOW**, **DEFER (with explicit trigger)**, or **NOT NEEDED**, and briefly explain the relevant trade-off.

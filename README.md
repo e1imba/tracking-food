@@ -6,7 +6,8 @@ Private, single-user food and symptom journal. Mobile-first web app.
 - [Functional specification](docs/functional-spec.md)
 - [Technical specification](docs/technical-spec.md)
 - [Agent instructions](AGENTS.md)
-- [Setup steps](docs/setup.md)
+- [Setup and next steps](docs/setup.md)
+- [Engineering decision guide](docs/engineering-laws.md)
 
 ## Local setup
 

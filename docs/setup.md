@@ -1,16 +1,17 @@
-# Initial setup and next steps
+# Tracking Food — Next Steps
 
-1. Review and merge the initial setup pull request manually.
-2. Connect `e1imba/tracking-food` to Codex Cloud using the official Codex interface, granting only the needed repository access.
-3. Sign in to Codex extension in VS Code and clone the private repository.
-4. Create a small issue to scaffold Next.js App Router with strict TypeScript, npm lockfile, lint/typecheck/tests and one healthcheck.
-5. Allow Codex to implement on a branch and propose a PR; review CI and merge personally.
-6. Configure PostgreSQL and authentication with non-production development resources. Secrets stay out of Git.
+## Početno podešavanje
 
-Do not enable automatic merge or deployment. Add optional MCP integrations only as needed. Update this checklist as tasks are completed.
+- [x] Kreiran je repozitorijum `e1imba/tracking-food`.
+- [x] Starter kit je uklopljen u repo, a Next.js scaffold i healthcheck su spojeni kroz [PR #5](https://github.com/e1imba/tracking-food/pull/5).
+- [x] Funkcionalna i tehnička dokumentacija su u [docs/](./).
+- [ ] Potvrdi željenu vidljivost repozitorijuma. Trenutno je javan.
+- [ ] U Codex Cloudu izaberi `e1imba/tracking-food` i proveri da sesija čita `AGENTS.md`, obe specifikacije i [vodič za inženjerske odluke](engineering-laws.md).
+- [ ] U VS Code-u prijavi se u Codex, kloniraj repo ako već nemaš lokalnu kopiju i proveri lokalni pristup.
+- [ ] Pre prvog zaštićenog toka dogovori autentifikaciju, PostgreSQL i razvojnu bazu. Pre unosa stvarnih podataka proveri rezervne kopije i oporavak.
 
-## Session workflow
+## Rad na tiketima
 
-Follow [the agreed workflow](workflow.md). Start each refinement, coding and review
-session manually; issue approval does not launch another task. No Projects board
-or agent orchestration is configured by these documents.
+Prati [tok od ideje do merge-a](workflow.md). Razradu, implementaciju i pregled pokreće vlasnik. GitHub tiketi i PR-ovi nose kontekst, a specifikacije opisuju dogovoreno ponašanje i tehničke odluke.
+
+MCP integracije uvodi kad postoji konkretan zadatak koji ih traži. Kandidati za pregled su u [tehničkoj specifikaciji](technical-spec.md#124-mcp-integracije--kandidati-za-pregled).
