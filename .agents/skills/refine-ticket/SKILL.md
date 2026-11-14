@@ -17,7 +17,8 @@ description: Refine an idea through chat into a small agreed GitHub issue before
    target branch, and with the relevant sections of both specifications. Identify
    what is already decided and which gaps or conflicts affect the ticket.
    - Ask functional questions about user-visible behavior, access, edge cases or
-     acceptance criteria when the sources leave a material choice open.
+     acceptance criteria when the sources leave a material choice open. For access
+     changes, check who can sign in and whose data each account can access.
    - Ask technical questions about architecture, dependencies, data, security or
      verification when the choice affects scope, risk or future work.
    - Ground each question in a concrete finding from the repository or a

@@ -1,11 +1,11 @@
 # Tracking Food — Tehnička dokumentacija
 
-**Verzija 0.5 · 13.11.2026. (Europe/Belgrade)**
+**Verzija 0.6 · 14.11.2026. (Europe/Belgrade)**
 
 Predlog arhitekture i plan razvoja za MVP. Funkcionalni zahtevi su u dokumentu „Funkcionalna dokumentacija“ (u repozitorijumu `docs/functional-spec.md`).
 
 ## 1. Cilj i granice
-Mobile-first responzivna web aplikacija za evidenciju obroka, namirnica i simptoma. U početku jedan korisnik. Brz unos, pregled i retroaktivne izmene su prioritet. Bez mikroservisa, posebnog REST API-ja, AI analize, kalorija ili nativne mobilne aplikacije u MVP-u.
+Mobile-first responzivna web aplikacija za evidenciju obroka, namirnica i simptoma. Svaki prijavljeni korisnik ima pristup samo svom dnevniku. Brz unos, pregled i retroaktivne izmene su prioritet. Bez mikroservisa, posebnog REST API-ja, AI analize, kalorija ili nativne mobilne aplikacije u MVP-u.
 
 ## 2. Tehnološke odluke
 | Sloj | Tehnologija | Odluka |
@@ -70,13 +70,16 @@ Indeksi: `meals(user_id, occurred_at DESC)`, `symptoms(user_id, started_at DESC)
 **Dashboard**: agregirana hronološka lista obroka i početaka/završetaka simptoma za izabrani period; bez zaključivanja da je obrok izazvao simptom.
 
 ## 6. Autentifikacija, privatnost i bezbednost
-- Privatna aplikacija: pristup samo autentifikovanom korisniku; nema javne registracije u MVP-u. Odabrati provereno auth rešenje kompatibilno sa Next.js i hostingom (npr. Auth.js ili managed provider) pre implementacije.
+- Google je jedini provajder prijave u tiketu [#7](https://github.com/e1imba/tracking-food/issues/7). Prvi i ponovljeni pristup koriste isti tok sa izborom Google naloga. Aplikacija prihvata svaki nalog koji Google uspešno autentifikuje, bez aplikacione liste dozvoljenih naloga ili posebne registracije.
+- Podrazumevano trajanje sesije je sedam dana. Održavati ga na jednom mestu kroz imenovanu konstantu, npr. `SESSION_MAX_AGE_SECONDS`. Odjava završava sesiju aplikacije. Zaštićene stranice proveravaju važeću sesiju na serveru.
+- Zatražiti samo osnovne Google dozvole za identitet. Stvarni OAuth tok proverava se lokalno pomoću Google klijenta za `localhost`, a automatske provere u CI ne koriste stvarne Google kredencijale. Auth.js sa sesijom u kolačiću je kandidat koji treba proveriti uz trenutnu verziju Next.js-a.
+- Trajni zapis korisnika uvodi se kada zatreba za čuvanje dnevnika. Povezati ga sa stabilnim identifikatorom Google naloga (`sub`). Svaki serverski pristup unosima, povezanim namirnicama i izveštajima mora proveriti vlasništvo prema identitetu iz sesije.
 - Autorizacija na svakoj serverskoj operaciji, uključujući čitanje; nikad ne verovati `user_id` sa klijenta.
 - Validacija svih Server Actions ulaza preko Zod; zaštita od prevelikih payload-a i ograničavanje zahteva prema potrebi.
 - TLS, tajne isključivo u server environment varijablama, minimalne DB privilegije.
 - Bez zdravstvenih podataka u analitičkim događajima, URL parametrima i aplikacionim logovima.
 - Backup i provera vraćanja podataka pre stvarne upotrebe; definisati retenciju i izvozni format. Izvoz i brisanje sopstvenih podataka planirati kao osnovne kontrole privatnosti.
-- Ako aplikacija postane javna, ponovo proceniti obaveze privatnosti, regulatorni okvir i multi-tenant izolaciju.
+- Pre javnog hostovanja ponovo proceniti obaveze privatnosti i regulatorni okvir. Pre čuvanja dnevnika testirati izolaciju podataka između dva naloga.
 
 ## 7. Datum, vreme i korisnički interfejs
 Trenutke čuvati kao `timestamptz`. Na unosu i prikazu eksplicitno konvertovati između trenutka i lokalnog vremena korisnika, uz podršku za letnje i zimsko računanje. Na telefonu donja navigacija Dashboard/Obroci/Simptomi i plutajuće dugme za unos; na desktopu bočna navigacija. Formulari moraju raditi na uskom ekranu i biti dostupni tastaturom.
@@ -96,7 +99,7 @@ Hosting je zamenljiv (Vercel ili drugi Next.js kompatibilan hosting). PostgreSQL
 - Bez CQRS, event bus-a, mikroservisa i zasebnog NestJS/.NET backend-a u prvoj verziji.
 
 ## 11. Otvorene odluke pre implementacije
-1. Konkretan auth provider i način pristupa samo jednom korisniku.
+1. Konkretna biblioteka za Google prijavu i konačna strategija sesije.
 2. Autocomplete za isti naziv obroka sa različitim skupovima namirnica.
 3. Potvrda brisanja ili undo; politika brisanja korišćenih namirnica.
 4. Backup interval, retencija, restore procedura i izvoz podataka.
@@ -201,6 +204,8 @@ Pre svake značajne izmene: (1) definisati korisnički problem i kriterijum uspe
 **Status:** Ovo je smernica za buduće predloge i review; ne znači da su pomenute funkcionalnosti implementirane niti da su otvorene odluke rešene.
 
 ## Istorija izmena
+
+- **0.6 · 14.11.2026.** — Definisani Google prijava, lokalna provera, trajanje sesije i izolacija podataka po korisniku.
 
 - **0.5 · 13.11.2026.** — Usklađene smernice iz knjige i postojeći tok rada u repozitorijumu.
 
