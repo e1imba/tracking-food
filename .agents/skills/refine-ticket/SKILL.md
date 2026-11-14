@@ -13,9 +13,19 @@ description: Refine an idea through chat into a small agreed GitHub issue before
 3. Keep the issue short: goal, scope, 3–5 observable acceptance criteria, relevant
    specification references, and only material technical decisions or blockers.
    Criteria describe delivered behavior, not a list of implementation steps.
-4. Ask about material ambiguities; do not expand scope. If specs disagree, surface
-   the conflict and propose a decision. Record approved requirement changes in the
-   canonical document; record material architecture decisions in docs/decisions/.
+4. Compare the request with the current code, tests and configuration on the
+   target branch, and with the relevant sections of both specifications. Identify
+   what is already decided and which gaps or conflicts affect the ticket.
+   - Ask functional questions about user-visible behavior, access, edge cases or
+     acceptance criteria when the sources leave a material choice open.
+   - Ask technical questions about architecture, dependencies, data, security or
+     verification when the choice affects scope, risk or future work.
+   - Ground each question in a concrete finding from the repository or a
+     specification. Give a recommendation and explain what the answer changes.
+     Ask only about decisions the owner needs to make. When a category has no
+     open decisions, briefly state the existing decision or a proposed default.
+   Record confirmed answers in the ticket, approved requirement changes in the
+   canonical specification, and material architecture decisions in docs/decisions/.
 5. Record the owner's scope confirmation in the issue before handoff. Give its link
    and the coding prompt from docs/workflow.md. Do not implement or launch another
    session as a side effect of refinement. Never claim a remote write that failed.
