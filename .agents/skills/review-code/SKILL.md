@@ -22,6 +22,9 @@ Do not edit code during review. Re-read updated rules on each review task.
   modules, no secrets in client bundles; session and ownership checks for private
   reads and every Server Action, server-side Zod validation, correct revalidation
   after writes. Check caching cannot expose one user's private data to another.
+- Authentication changes: check Google account selection, access for different
+  accounts, the single session duration setting, expiry and sign-out. Verify
+  that CI needs no real OAuth credentials.
 - PostgreSQL/Drizzle: transactions for multi-table writes, ownership of related
   foods, constraints/indexes and migration safety. Preserve meal snapshots and
   history; deletion must not unexpectedly remove catalog entries or other meals.

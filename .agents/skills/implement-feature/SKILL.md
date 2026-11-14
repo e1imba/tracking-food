@@ -10,7 +10,10 @@ description: Implement an agreed issue, open a PR, or address review feedback in
    surface unresolved blockers or specification conflicts before dependent work.
 2. Inspect the current repository and use a dedicated feature branch. Implement
    the smallest change meeting the criteria. Use database-change/write-tests skills
-   when relevant. Do not introduce speculative scope or abstractions.
+   when relevant. For auth changes, follow the technical specification for
+   Google account access and session duration. For private data changes, scope
+   server reads and writes to the authenticated owner.
+   Do not introduce speculative scope or abstractions.
 3. Add meaningful tests appropriate to the change. Run available lint, typecheck,
    tests and build; disclose unavailable/skipped checks and actual failures.
    Documentation-only changes need documentation checks, not invented app tests.

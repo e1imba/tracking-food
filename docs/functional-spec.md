@@ -1,8 +1,14 @@
 # Tracking Food — Funkcionalna dokumentacija
 
-Funkcionalna dokumentacija · Verzija 0.4 · 12.11.2026.
+Funkcionalna dokumentacija · Verzija 0.5 · 14.11.2026.
 
-Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Aplikacija je namenjena jednom korisniku. Služi za brz unos sa telefona, pregled istorije i kasniju pripremu izveštaja za razgovor sa lekarom.
+Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik ima svoj privatan dnevnik. Služi za brz unos sa telefona, pregled istorije i kasniju pripremu izveštaja za razgovor sa lekarom.
+
+## Prijava i odjava
+
+- Dugme „Nastavi preko Google-a“ otvara izbor Google naloga. Svaki Google nalog koji Google uspešno autentifikuje može da pristupi aplikaciji. Prvi i ponovljeni ulazak koriste isti tok, bez posebnog registracionog formulara ili lozinke u aplikaciji.
+- Zaštićena početna stranica traži prijavu. Prijava ostaje aktivna posle osvežavanja, sa podrazumevanim trajanjem sesije od sedam dana. Posle odjave ili isteka sesije pristup ponovo traži prijavu.
+- Svaki korisnik može da pristupi samo svojim unosima i izveštajima.
 
 ## Obroci
 
@@ -38,7 +44,7 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Aplikacija je 
 
 ## Redosled razvoja i otvorene odluke
 
-- Redosled razvoja MVP-a je unos i istorija obroka, zatim simptomi, pa osnovni Dashboard. Izveštaji, analitika i plan ishrane slede posle osnovnog Dashboard-a.
+- Redosled razvoja MVP-a je prijava i odjava, zatim unos i istorija obroka, zatim simptomi, pa osnovni Dashboard. Izveštaji, analitika i plan ishrane slede posle osnovnog Dashboard-a.
 
 - Kalorije, makronutrijenti i AI preporuke izostavljeni su iz MVP-a. PWA i zasebna nativna mobilna aplikacija ostaju opcije za kasnije.
 
@@ -61,6 +67,8 @@ Vodič za razvoj je knjiga dr Milana Milanovića „Laws of Software Engineering
 - Zahtev za novu funkcionalnost prvo proceniti: potreba sada, odluka kasnije uz konkretan okidač ili funkcionalnost van obima. Prednost imaju brzina unosa, pouzdana istorija, privatnost i jednostavnost.
 
 ## Istorija izmena
+
+0.5 · 14.11.2026. — Dogovoreni Google prijava i odjava, trajanje sesije i vlasništvo nad unosima.
 
 0.4 · 12.11.2026. — Dodat vodič za prioritizaciju i pravovremeno donošenje odluka prema knjizi Laws of Software Engineering.
 

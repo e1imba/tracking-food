@@ -1,6 +1,6 @@
 # Tracking Food
 
-Private, single-user food and symptom journal. Mobile-first web app.
+Mobile-first food and symptom journal with private data per user.
 
 ## Project documentation
 - [Functional specification](docs/functional-spec.md)
@@ -72,9 +72,7 @@ ESLint 9 is pinned because Next.js's bundled lint plugins currently declare
 support through ESLint 9. Revisit this pin when those plugins support ESLint 10;
 npm currently marks ESLint 9 as deprecated.
 
-PostgreSQL/Drizzle persistence, authentication and journal workflows are deferred
-to later issues. Authentication must be decided before protected access or
-deployment, and backups/restore before real personal data is stored.
+[Google sign-in and sign-out](https://github.com/e1imba/tracking-food/issues/7) is the next feature. PostgreSQL/Drizzle persistence follows when journal entries need to be stored. Verify backups and restore before storing real personal data.
 
 ## Development workflow
 See [Codex session workflow](docs/workflow.md) for refinement, coding, review and copyable prompts.
