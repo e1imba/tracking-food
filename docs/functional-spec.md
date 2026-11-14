@@ -1,6 +1,6 @@
 # Tracking Food — Funkcionalna dokumentacija
 
-Funkcionalna dokumentacija · Verzija 0.6 · 14.11.2026.
+Funkcionalna dokumentacija · Verzija 0.7 · 14.11.2026.
 
 Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik pristupa svom privatnom dnevniku preko Google naloga. Služi za brz unos sa telefona, pregled istorije i kasniju pripremu izveštaja za razgovor sa lekarom.
 
@@ -9,15 +9,19 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik
 - Dugme „Nastavi preko Google-a“ otvara izbor Google naloga. Svaki nalog koji Google uspešno autentifikuje može da pristupi aplikaciji, bez aplikacione liste dozvoljenih naloga, posebne registracije ili lozinke. Prvi i ponovljeni pristup koriste isti tok.
 - Početna stranica `/` je zaštićena. Bez važeće sesije korisnik ide na `/login`. Svaki Google nalog ima nezavisnu sesiju, koja ostaje aktivna posle osvežavanja; podrazumevano traje 7 dana. Istek traži novu prijavu.
 - „Odjavi se“ završava sesiju u tom pregledaču i vraća ekran za prijavu. Ponovno direktno otvaranje ili osvežavanje početne stranice traži prijavu. Google nalog u pregledaču ostaje prijavljen kod Google-a.
-- Za ovu fazu tok se proverava lokalno na `localhost`; Apple, hosting, trajni korisnički zapisi i funkcije dnevnika dolaze u posebnim tiketima. Svaki korisnik može da pristupi samo svojim unosima i izveštajima; svaki serverski pristup mora proveriti vlasništvo.
+- Za ovu fazu tok se proverava lokalno na `localhost`; Apple i hosting dolaze u posebnim tiketima. Issue #11 uvodi trajne korisnike i privatni unos/istoriju obroka. Svaki korisnik može da pristupi samo svojim unosima i izveštajima; svaki serverski pristup mora proveriti vlasništvo.
 
 ## Obroci
 
-- Na ekranu Obroci korisnik vidi hronološku listu i može da pregleda, izmeni ili obriše svaki unos.
+- Zaštićeni ekran `/meals` omogućava unos i privatnu istoriju od najnovijeg ka najstarijem po vremenu obroka. Unosi ostaju posle osvežavanja. Izmena, brisanje i predlozi prethodnih obroka slede u narednim tiketima.
 
-- Formular sadrži naziv u slobodnom tekstu, višestruki izbor namirnica i datum i vreme. Podrazumevano vreme je sada, uz mogućnost retroaktivnog unosa. Nova namirnica može da se doda u katalog tokom unosa.
+- Formular sadrži naziv u slobodnom tekstu, višestruki izbor namirnica, opcionu višerednu Napomenu i datum i vreme. Podrazumevano vreme je sada, uz mogućnost retroaktivnog unosa. Nova namirnica može da se doda u katalog tokom unosa.
 
-- Izbor prethodnog obroka iz predloga popunjava njegov skup namirnica, koji korisnik može da prilagodi pre čuvanja. Predlozi mogu da pomognu pri tipfelerima, uz očuvanje unetog teksta.
+- Planirano za naredni tiket: izbor prethodnog obroka iz predloga popunjava njegov skup namirnica, koji korisnik može da prilagodi pre čuvanja. Predlozi mogu da pomognu pri tipfelerima, uz očuvanje unetog teksta.
+
+- Napomena se čuva uz obrok i prikazuje kao običan tekst u privatnoj istoriji; prazan unos ili same beline znače da napomene nema. Obrok radi i sa praznim katalogom i bez namirnica. Nove namirnice i obrok čuvaju se zajedno; pri grešci ništa od tog unosa ne ostaje delimično sačuvano.
+
+- Vreme se unosi i prikazuje u lokalnoj zoni uređaja. Nepostojeće vreme pri prelasku na letnje računanje se odbija; ponovljeni sat pri povratku koristi prvi trenutak.
 
 - Svaki unos čuva svoj skup namirnica. Naziv je dovoljan za opis obroka. Obavezne kategorije i poseban editor recepata ili šablona izostavljeni su iz prve faze.
 
@@ -68,6 +72,8 @@ Vodič za razvoj je knjiga dr Milana Milanovića „Laws of Software Engineering
 - Zahtev za novu funkcionalnost prvo proceniti: potreba sada, odluka kasnije uz konkretan okidač ili funkcionalnost van obima. Prednost imaju brzina unosa, pouzdana istorija, privatnost i jednostavnost.
 
 ## Istorija izmena
+
+0.7 · 14.11.2026. — Issue #11: privatni unos i trajna istorija, opciona napomena i lokalno vreme.
 
 0.6 · 14.11.2026. — Issue #7: Google prijava za svaki nalog, nezavisne sedmodnevne sesije i odjava; izolacija budućih dnevnika po korisniku.
 

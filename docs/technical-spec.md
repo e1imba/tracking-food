@@ -1,6 +1,6 @@
 # Tracking Food — Tehnička dokumentacija
 
-**Verzija 0.7 · 14.11.2026. (Europe/Belgrade)**
+**Verzija 0.8 · 14.11.2026. (Europe/Belgrade)**
 
 Predlog arhitekture i plan razvoja za MVP. Funkcionalni zahtevi su u dokumentu „Funkcionalna dokumentacija“ (u repozitorijumu `docs/functional-spec.md`).
 
@@ -20,7 +20,7 @@ Mobile-first responzivna web aplikacija za evidenciju obroka, namirnica i simpto
 | Autentifikacija | Auth.js v5 (`next-auth`), Google OIDC | Šifrovana JWT sesija u HttpOnly kolačiću, 7 dana; [ADR-001](decisions/001-google-auth.md) |
 | Deployment | Naknadna odluka | Ne vezivati arhitekturu za provajdera |
 
-Verzije paketa su zaključane u `package.json` i `package-lock.json`. PostgreSQL/Drizzle i trajni korisnički zapisi uvode se pri implementaciji čuvanja dnevnika; autentifikacija ne zahteva bazu.
+Verzije paketa su zaključane u `package.json` i `package-lock.json`. PostgreSQL/Drizzle i trajni korisnici uvedeni su u issue #11; autentifikacija i dalje koristi JWT bez DB adaptera. Model i transakcije opisuje [ADR-002](decisions/002-meal-persistence.md).
 
 ## 3. Arhitektura i odgovornosti
 - **Server Components**: stranice, čitanje podataka, inicijalno renderovanje i prikaz istorije.
@@ -49,20 +49,22 @@ Struktura je orijentaciona; izbegavati generičke apstrakcije bez potrebe.
 ## 4. Predlog modela podataka
 Glavni entiteti koriste UUID identifikatore. Vremenska polja su navedena po tabelama.
 
-**users** (odloženo do čuvanja dnevnika): `id`, Google `sub` kao stabilan jedinstveni identifikator naloga, `email`, `created_at`. Konačnu šemu i mapiranje vlasništva definisati u tiketu za trajno čuvanje; email nije identifikator za autorizaciju. Trenutno se identitet čuva samo u sesiji.
+**users**: UUID `id`, jedinstveni `google_sub`, opcioni `email`, `created_at`. Serverski verifikovani Google `sub` određuje trajnog vlasnika putem konkurentno bezbednog upsert-a; email nije autorizacioni ključ.
 
 **foods**: `id`, `user_id` (FK), `name`, `normalized_name` (za pretragu), `created_at`, `updated_at`. Unikatnost po korisniku i normalizovanom nazivu; čuvati originalni prikazni naziv.
 
-**meals**: `id`, `user_id` (FK), `name`, `occurred_at` (timestamptz), `created_at`, `updated_at`.
+**meals**: `id`, `user_id` (FK), `name`, `note` (nullable text), `occurred_at` (timestamptz), `created_at`, `updated_at`.
 
-**meal_foods**: `meal_id` (FK), `food_id` (FK), `food_name_snapshot`, kompozitni PK (`meal_id`, `food_id`). Snapshot štiti istorijski naziv od kasnijih promena kataloga; izmena jednog obroka ne menja druge.
+**meal_foods**: `meal_id`, `food_id`, `user_id`, `food_name_snapshot`; kompozitni FK (`meal_id`, `user_id`) i (`food_id`, `user_id`) ograničavaju veze na istog vlasnika; kompozitni PK (`meal_id`, `food_id`). Snapshot štiti istorijski naziv od kasnijih promena kataloga; izmena jednog obroka ne menja druge.
 
 **symptoms**: `id`, `user_id` (FK), `name`, `started_at` (timestamptz), `ended_at` (nullable timestamptz), `severity` (nullable integer 1–10), `note` (nullable text), `created_at`, `updated_at`. CHECK `ended_at IS NULL OR ended_at >= started_at`.
 
 Indeksi: `meals(user_id, occurred_at DESC)`, `symptoms(user_id, started_at DESC)`, `foods(user_id, normalized_name)`. Vlasništvo se proverava i za povezane namirnice. Brisanje obroka briše samo njegove veze, ne katalog namirnica. Brisanje namirnica iz kataloga mora čuvati integritet istorije; za MVP ne nuditi globalno brisanje korišćene namirnice.
 
 ## 5. Funkcionalni tokovi
-**Dodaj obrok**: validacija naziva/vremena i liste namirnica → identifikacija ili kreiranje namirnica → kreiranje obroka i veza u jednoj transakciji → osvežavanje istorije. Autocomplete naziva obroka predlaže prethodne unose; izbor popunjava prethodni skup namirnica koji korisnik može izmeniti. Ako isto ime ima više skupova, pravilo izbora ostaje otvoreno.
+**Dodaj obrok (issue #11)**: naziv je dovoljan, namirnice su opcione. Napomena do 5000 znakova je opcioni običan tekst, trim i prazno/beline → NULL. Nazivi do 200 znakova, najviše 100 izabranih i novih namirnica ukupno. Normalizacija namirnica: Unicode NFKC, trim, sažimanje belina i lowercase, uz očuvanje akcenata i postojećeg prikaznog naziva pri koliziji. Serverska Zod validacija prethodi transakciji; vlasnik se uzima iz `requireUser()`. Istorija i katalog se serverski ograničavaju na vlasnika.
+
+Tok: validacija naziva/vremena i liste namirnica → identifikacija ili kreiranje namirnica → kreiranje obroka i veza u jednoj transakciji → osvežavanje istorije. Planirano za naredni tiket: autocomplete naziva obroka predlaže prethodne unose; izbor popunjava prethodni skup namirnica koji korisnik može izmeniti. Ako isto ime ima više skupova, pravilo izbora ostaje otvoreno.
 
 **Izmeni obrok**: proveri vlasništvo → ažuriraj obrok i njegove veze transakciono; drugi obroci ostaju nepromenjeni.
 
@@ -72,10 +74,10 @@ Indeksi: `meals(user_id, occurred_at DESC)`, `symptoms(user_id, started_at DESC)
 
 ## 6. Autentifikacija, privatnost i bezbednost
 - Google OIDC preko Auth.js v5 (`next-auth@5.0.0-beta.32`), kompatibilan sa Next.js 16 i React 19, uz asinhrone `headers()`/`cookies()` API-je. Svaki uspešno autentifikovan Google nalog je prihvaćen; prvi i ponovljeni pristup koriste isti tok bez registracionog formulara ili lozinke. Google traži samo `openid email profile`, uz `prompt=select_account`.
-- Šifrovana JWT sesija u HttpOnly, SameSite=Lax kolačiću (Secure na HTTPS). Podrazumevano trajanje određuje jedino `SESSION_MAX_AGE_SECONDS` u `src/lib/auth/config.ts` (7 dana); Auth.js primenjuje istu vrednost na JWT i kolačić. Auth.js session endpoint obnavlja rok važeće sesije. Nevažeći ili istekao token se odbija. Odjava briše sesiju iz tog pregledača, bez odjave Google naloga. Nema DB adaptera ni trajnih korisničkih zapisa u ovom tiketu.
-- `/` poziva serverski `requireUser()` i bez verifikovanog identiteta preusmerava na `/login`. Auth.js GET/POST handler je na `/api/auth/[...nextauth]`; prijava i odjava koriste Server Actions. `/login` i `/api/health` su javni. Provera u layout-u ili prisustvo kolačića nisu dovoljni za zaštitu.
+- Šifrovana JWT sesija u HttpOnly, SameSite=Lax kolačiću (Secure na HTTPS). Podrazumevano trajanje određuje jedino `SESSION_MAX_AGE_SECONDS` u `src/lib/auth/config.ts` (7 dana); Auth.js primenjuje istu vrednost na JWT i kolačić. Auth.js session endpoint obnavlja rok važeće sesije. Nevažeći ili istekao token se odbija. Odjava briše sesiju iz tog pregledača, bez odjave Google naloga. Nema auth DB adaptera; trajni korisnici dnevnika uvedeni su zasebno kroz issue #11.
+- `/` i `/meals` pozivaju serverski `requireUser()` i bez verifikovanog identiteta preusmeravaju na `/login`. Auth.js GET/POST handler je na `/api/auth/[...nextauth]`; prijava i odjava koriste Server Actions. `/login` i `/api/health` su javni. Provera u layout-u ili prisustvo kolačića nisu dovoljni za zaštitu.
 - Lokalni OAuth callback: `http://localhost:3000/api/auth/callback/google`. `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` i `AUTH_URL` idu u `.env.local`; samo placeholderi u `.env.example`. Google tokeni se ne izlažu u sesiji klijenta. JWT callback čuva verifikovani Google `providerAccountId` (`sub`) kao stabilan identitet; Auth.js generisani korisnički UUID bez adaptera nije stabilan između prijava. Auth logger beleži samo kategoriju greške, bez uzroka, tokena ili profila. Lokalno podešavanje i ručna provera su u [README](../README.md#google-oauth-on-localhost). Apple i hosting su van issue #7.
-- Autorizacija na svakoj serverskoj operaciji, uključujući čitanje; nikad ne verovati `user_id` sa klijenta. Buduće unose dnevnika, povezane namirnice i izveštaje ograničiti na vlasnika na serveru, prema verifikovanom identitetu sesije.
+- Autorizacija na svakoj serverskoj operaciji, uključujući čitanje; nikad ne verovati `user_id` sa klijenta. Unose dnevnika, povezane namirnice i buduće izveštaje ograničiti na vlasnika na serveru, prema verifikovanom identitetu sesije.
 - Validacija svih Server Actions ulaza preko Zod; zaštita od prevelikih payload-a i ograničavanje zahteva prema potrebi.
 - TLS, tajne isključivo u server environment varijablama, minimalne DB privilegije.
 - Bez zdravstvenih podataka u analitičkim događajima, URL parametrima i aplikacionim logovima.
@@ -83,7 +85,7 @@ Indeksi: `meals(user_id, occurred_at DESC)`, `symptoms(user_id, started_at DESC)
 - Pre hostinga i čuvanja stvarnih podataka proceniti obaveze privatnosti i regulatorni okvir; izolacija podataka po korisniku je obavezna od prvog trajnog unosa i testira se između dva naloga.
 
 ## 7. Datum, vreme i korisnički interfejs
-Trenutke čuvati kao `timestamptz`. Na unosu i prikazu eksplicitno konvertovati između trenutka i lokalnog vremena korisnika, uz podršku za letnje i zimsko računanje. Na telefonu donja navigacija Dashboard/Obroci/Simptomi i plutajuće dugme za unos; na desktopu bočna navigacija. Formulari moraju raditi na uskom ekranu i biti dostupni tastaturom.
+Trenutke čuvati kao `timestamptz`. Na unosu browser pretvara lokalno vreme uređaja u UTC ISO trenutak, a prikaz koristi trenutnu zonu uređaja. Nepostojeća vremena tokom DST prelaza se odbijaju; ponovljeni sat koristi prvi trenutak. Istorija je silazna po `occurred_at`, zatim `created_at` i ID-ju za stabilan redosled. Na telefonu donja navigacija Dashboard/Obroci/Simptomi i plutajuće dugme za unos; na desktopu bočna navigacija. Formulari moraju raditi na uskom ekranu i biti dostupni tastaturom.
 
 ## 8. Testiranje i kvalitet
 - Unit: validacija, normalizacija naziva, završetak simptoma, vremenske granice.
@@ -101,7 +103,7 @@ Hosting je zamenljiv (Vercel ili drugi Next.js kompatibilan hosting). PostgreSQL
 - Bez CQRS, event bus-a, mikroservisa i zasebnog NestJS/.NET backend-a u prvoj verziji.
 
 ## 11. Otvorene odluke pre implementacije
-1. Trajni korisnički model i mapiranje Google identiteta pri uvođenju čuvanja dnevnika (Google autentifikacija i sesija su rešeni u [ADR-001](decisions/001-google-auth.md)).
+1. Trajni korisnici i vlasništvo rešeni su u [ADR-002](decisions/002-meal-persistence.md); Google autentifikacija i sesija u [ADR-001](decisions/001-google-auth.md).
 2. Autocomplete za isti naziv obroka sa različitim skupovima namirnica.
 3. Potvrda brisanja ili undo; politika brisanja korišćenih namirnica.
 4. Backup interval, retencija, restore procedura i izvoz podataka.
@@ -206,6 +208,8 @@ Pre svake značajne izmene: (1) definisati korisnički problem i kriterijum uspe
 **Status:** Ovo je smernica za buduće predloge i review; ne znači da su pomenute funkcionalnosti implementirane niti da su otvorene odluke rešene.
 
 ## Istorija izmena
+
+- **0.8 · 14.11.2026.** — Issue #11: PostgreSQL/Drizzle, trajni vlasnici, transakcioni unos sa napomenom, izolacija i testovi. Lokalni postupak migracija i provera: [setup](setup.md#postgresql-i-obroci-issue-11).
 
 - **0.7 · 14.11.2026.** — Issue #7: Auth.js/Google i sedmodnevne JWT sesije; uklonjena pretpostavka jednog korisnika i posebne registracije. Baza i trajni korisnici odloženi do čuvanja dnevnika.
 
