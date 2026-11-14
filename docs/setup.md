@@ -8,8 +8,8 @@
 - [ ] Potvrdi željenu vidljivost repozitorijuma. Trenutno je javan.
 - [ ] U Codex Cloudu izaberi `e1imba/tracking-food` i proveri da sesija čita `AGENTS.md`, obe specifikacije i [vodič za inženjerske odluke](engineering-laws.md).
 - [ ] U VS Code-u prijavi se u Codex, kloniraj repo ako već nemaš lokalnu kopiju i proveri lokalni pristup.
-- [ ] Podesi Google OAuth klijent za lokalnu proveru prijave i odjave u [tiketu #7](https://github.com/e1imba/tracking-food/issues/7).
-- [ ] Pre čuvanja obroka dogovori razvojnu PostgreSQL bazu i migracije. Pre unosa stvarnih podataka proveri rezervne kopije i oporavak.
+- [ ] Podesi lokalni Google OAuth klijent i proveri prijavu/odjavu prema [README](../README.md#google-oauth-on-localhost) i [ADR-001](decisions/001-google-auth.md).
+- [ ] Pre čuvanja obroka dogovori razvojnu PostgreSQL bazu, Drizzle migracije i trajne korisnike. Pre unosa stvarnih podataka proveri rezervne kopije i oporavak.
 
 ## Rad na tiketima
 
