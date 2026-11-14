@@ -1,6 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 import { AUTH_TEST_ORIGIN, AUTH_TEST_SECRET } from "./tests/auth-test-env";
 
+const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+if (!testDatabaseUrl || !new URL(testDatabaseUrl).pathname.endsWith("_test")) {
+  throw new Error("Set TEST_DATABASE_URL to a disposable database ending in _test");
+}
+
 export default defineConfig({
   testDir: "./tests/e2e",
   forbidOnly: !!process.env.CI,
@@ -8,6 +13,7 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL: AUTH_TEST_ORIGIN,
+    timezoneId: "Europe/Belgrade",
     trace: "retain-on-failure",
     launchOptions: {
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
@@ -23,6 +29,7 @@ export default defineConfig({
     // Own the server so tests cannot use real credentials or a different secret.
     reuseExistingServer: false,
     env: {
+      DATABASE_URL: testDatabaseUrl,
       AUTH_SECRET: AUTH_TEST_SECRET,
       AUTH_URL: AUTH_TEST_ORIGIN,
       AUTH_TRUST_HOST: "true",

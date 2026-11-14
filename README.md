@@ -141,3 +141,10 @@ See [Codex session workflow](docs/workflow.md) for refinement, coding, review an
 Use feature branches and pull requests. Only the repository owner approves merges, deployment, production access and destructive database changes.
 
 Do not add real health information, secrets or production credentials to the repository.
+
+## Meal journal
+
+Private entry and history are available at `/meals`. PostgreSQL setup, explicit
+migrations, disposable test database and manual checks are documented in
+[docs/setup.md](docs/setup.md#postgresql-i-obroci-issue-11). Use synthetic data only
+until hosting, backup and restore have been agreed.
