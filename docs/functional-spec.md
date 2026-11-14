@@ -1,14 +1,15 @@
 # Tracking Food — Funkcionalna dokumentacija
 
-Funkcionalna dokumentacija · Verzija 0.5 · 14.11.2026.
+Funkcionalna dokumentacija · Verzija 0.6 · 14.11.2026.
 
-Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik ima svoj privatan dnevnik. Služi za brz unos sa telefona, pregled istorije i kasniju pripremu izveštaja za razgovor sa lekarom.
+Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik pristupa svom privatnom dnevniku preko Google naloga. Služi za brz unos sa telefona, pregled istorije i kasniju pripremu izveštaja za razgovor sa lekarom.
 
 ## Prijava i odjava
 
-- Dugme „Nastavi preko Google-a“ otvara izbor Google naloga. Svaki Google nalog koji Google uspešno autentifikuje može da pristupi aplikaciji. Prvi i ponovljeni ulazak koriste isti tok, bez posebnog registracionog formulara ili lozinke u aplikaciji.
-- Zaštićena početna stranica traži prijavu. Prijava ostaje aktivna posle osvežavanja, sa podrazumevanim trajanjem sesije od sedam dana. Posle odjave ili isteka sesije pristup ponovo traži prijavu.
-- Svaki korisnik može da pristupi samo svojim unosima i izveštajima.
+- Dugme „Nastavi preko Google-a“ otvara izbor Google naloga. Svaki nalog koji Google uspešno autentifikuje može da pristupi aplikaciji, bez aplikacione liste dozvoljenih naloga, posebne registracije ili lozinke. Prvi i ponovljeni pristup koriste isti tok.
+- Početna stranica `/` je zaštićena. Bez važeće sesije korisnik ide na `/login`. Svaki Google nalog ima nezavisnu sesiju, koja ostaje aktivna posle osvežavanja; podrazumevano traje 7 dana. Istek traži novu prijavu.
+- „Odjavi se“ završava sesiju u tom pregledaču i vraća ekran za prijavu. Ponovno direktno otvaranje ili osvežavanje početne stranice traži prijavu. Google nalog u pregledaču ostaje prijavljen kod Google-a.
+- Za ovu fazu tok se proverava lokalno na `localhost`; Apple, hosting, trajni korisnički zapisi i funkcije dnevnika dolaze u posebnim tiketima. Svaki korisnik može da pristupi samo svojim unosima i izveštajima; svaki serverski pristup mora proveriti vlasništvo.
 
 ## Obroci
 
@@ -67,6 +68,8 @@ Vodič za razvoj je knjiga dr Milana Milanovića „Laws of Software Engineering
 - Zahtev za novu funkcionalnost prvo proceniti: potreba sada, odluka kasnije uz konkretan okidač ili funkcionalnost van obima. Prednost imaju brzina unosa, pouzdana istorija, privatnost i jednostavnost.
 
 ## Istorija izmena
+
+0.6 · 14.11.2026. — Issue #7: Google prijava za svaki nalog, nezavisne sedmodnevne sesije i odjava; izolacija budućih dnevnika po korisniku.
 
 0.5 · 14.11.2026. — Dogovoreni Google prijava i odjava, trajanje sesije i vlasništvo nad unosima.
 
