@@ -76,11 +76,13 @@ export function MealForm({ catalog, suggestions, onDirtyChange, onSavingChange, 
       } })} type="datetime-local" required aria-invalid={!!errors.localTime} aria-describedby="time-help" className="control" />{errors.localTime && <span role="alert">Unesite datum i vreme.</span>}</label>
       <p id="time-help" className="field-help">Lokalno vreme vašeg uređaja. Možete uneti raniji obrok.</p>
       <label className="field" htmlFor="meal-type">Tip obroka</label><select id="meal-type" {...register("mealType", { onChange: () => { setManualType(true); } })}
-        onClick={() => setManualType(true)}
-        onKeyDown={event => { if (event.key === "Enter") setManualType(true); }}
         className="control" aria-invalid={!!errors.mealType}>
         {Object.entries(MEAL_TYPES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-      </select>{errors.mealType && <span role="alert">Izaberite tip obroka.</span>}
+      </select>
+      {!manualType && <button type="button" className="secondary mt-2" onClick={() => setManualType(true)}>
+        Zadrži predloženi tip
+      </button>}
+      {errors.mealType && <span role="alert">Izaberite tip obroka.</span>}
       <fieldset className="foods-field"><legend>Namirnice <span>(opciono)</span></legend>
         <div className="selected-foods" aria-label="Izabrane namirnice">
           {catalog.filter(food => selected.includes(food.id)).map(food => <button type="button" key={food.id} className="food-chip" aria-label={`Ukloni ${food.name}`} onClick={() => setSelected(selected.filter(id => id !== food.id))}>{food.name}<span aria-hidden="true">×</span></button>)}
