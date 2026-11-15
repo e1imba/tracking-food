@@ -1,0 +1,2 @@
+ALTER TABLE "meals" ADD COLUMN "meal_type" text;--> statement-breakpoint
+ALTER TABLE "meals" ADD CONSTRAINT "meals_meal_type_check" CHECK ("meals"."meal_type" IN ('breakfast', 'lunch', 'dinner', 'snack', 'other'));

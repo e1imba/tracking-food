@@ -1,4 +1,6 @@
-import { foreignKey, index, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import type { MealType } from "../../features/meals/meal-types";
+import { check, foreignKey, index, pgTable, primaryKey, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -24,10 +26,13 @@ export const meals = pgTable("meals", {
   id: uuid().defaultRandom().primaryKey(),
   userId: uuid("user_id").notNull().references(() => users.id),
   name: text().notNull(),
+  mealType: text("meal_type").$type<MealType>(),
   note: text(),
   occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
   ...timestamps,
-}, (t) => [index().on(t.userId, t.occurredAt.desc()), unique().on(t.id, t.userId)]);
+}, (t) => [index().on(t.userId, t.occurredAt.desc()), unique().on(t.id, t.userId),
+  check("meals_meal_type_check", sql`${t.mealType} IN ('breakfast', 'lunch', 'dinner', 'snack', 'other')`),
+]);
 
 export const mealFoods = pgTable("meal_foods", {
   mealId: uuid("meal_id").notNull(),

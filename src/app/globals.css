@@ -12,9 +12,9 @@ body {
 :root { --canvas: #f6f7f9; --ink: #17212b; --accent: #087f6b; --line: #e2e6e9; --muted: #596571; }
 * { box-sizing: border-box; }
 body { background: var(--canvas); color: var(--ink); line-height: 1.5; }
-button, input, textarea { font: inherit; }
+button, input, select, textarea { font: inherit; }
 button, summary { cursor: pointer; }
-button, a, input, textarea, summary { -webkit-tap-highlight-color: transparent; }
+button, a, input, select, textarea, summary { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 button:disabled { cursor: wait; opacity: .6; }
 .journal-shell { min-height: 100dvh; }
@@ -83,10 +83,14 @@ input[type=datetime-local] { appearance: none; }
 .selected-foods { display: flex; flex-wrap: wrap; gap: 8px; }
 .food-chip { display: flex; align-items: center; gap: 12px; min-height: 44px; max-width: 100%; overflow-wrap: anywhere; text-align: left; background: #e8f5f0; color: #066856; border-radius: 12px; padding: 8px 12px; font-size: 13px; margin-top: 8px; }
 .food-chip span { font-size: 20px; }
-.food-results { max-height: 180px; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; margin: 8px 0; padding: 4px 12px; }
-.food-results label { display: flex; gap: 12px; align-items: center; min-height: 44px; font-size: 14px; overflow-wrap: anywhere; }
-.food-results input { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--accent); }
-.food-results p { font-size: 13px; padding: 12px 0; color: var(--muted); }
+.autocomplete { position: relative; margin-top: 20px; }
+.autocomplete:first-child { margin-top: 0; }
+.autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 2; max-height: 180px; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; background: white; box-shadow: 0 4px 12px #17212b22; }
+.autocomplete-dropdown [role=option] { padding: 12px; min-height: 48px; overflow-wrap: anywhere; cursor: pointer; }
+.autocomplete-dropdown [role=option]:hover, .autocomplete-dropdown [aria-selected=true] { background: #e8f5f0; }
+.autocomplete-dropdown p { padding: 12px; font-size: 13px; color: var(--muted); }
+.autocomplete-dropdown .secondary { margin: 4px 12px 12px; }
+.meal-type { display: block; font-size: 13px; font-weight: 400; color: var(--muted); margin-top: 4px; }
 .form-footer { border-top: 1px solid var(--line); padding: 12px 20px calc(16px + env(safe-area-inset-bottom)); background: white; flex-shrink: 0; }
 .form-footer p:not(:empty) { color: #a12c23; font-size: 13px; margin-bottom: 8px; }
 .form-footer .primary { width: 100%; }

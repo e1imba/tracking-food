@@ -20,7 +20,7 @@ const subjectB = `synthetic-b-${randomUUID()}`;
 function as(subject: string) {
   vi.mocked(requireUser).mockResolvedValue({ id: subject, email: "synthetic@example.test" });
 }
-const input = { name: "Test obrok", occurredAt: "2026-10-25T02:30:00+02:00", foodIds: [], newFoods: [] };
+const input = { mealType: "lunch", name: "Test obrok", occurredAt: "2026-10-25T02:30:00+02:00", foodIds: [], newFoods: [] };
 
 beforeAll(async () => {
   as(subjectA);
@@ -109,4 +109,44 @@ it("fails closed before reading or writing without a session", async () => {
   vi.mocked(requireUser).mockRejectedValue(new Error("redirect login"));
   await expect(readJournal()).rejects.toThrow("redirect login");
   await expect(saveMeal(input)).rejects.toThrow("redirect login");
+});
+
+it("rejects invalid or missing new meal types without writes; DB allows legacy null only", async () => {
+  as(subjectA);
+  const before = await readJournal();
+  for (const mealType of [null, undefined, "custom"]) {
+    await expect(saveMeal({ ...input, mealType })).rejects.toThrow();
+  }
+  expect(await readJournal()).toEqual(before);
+  const [user] = await db.select().from(users).where(eq(users.googleSub, subjectA));
+  await expect(db.execute(sql`INSERT INTO meals (user_id, name, occurred_at, meal_type) VALUES (${user.id}, 'Invalid synthetic', now(), 'custom')`)).rejects.toThrow();
+  const [legacy] = await db.insert(meals).values({ userId: user.id, name: "Legacy synthetic", occurredAt: new Date() }).returning();
+  expect((await readJournal()).history.find(m => m.id === legacy.id)?.mealType).toBeNull();
+});
+
+it("suggests the latest eaten full name with owned food IDs and stable timestamp ties", async () => {
+  const { latestMealSuggestions } = await import("../../src/features/meals/suggestions");
+  as(subjectA);
+  const latest = await saveMeal({ ...input, name: "Sendvič", occurredAt: "2026-11-15T12:00:00Z", newFoods: ["Kečap"] });
+  // Entered later, eaten earlier: it must not win.
+  await saveMeal({ ...input, name: "  ＳENDVIČ ", occurredAt: "2026-11-14T12:00:00Z", newFoods: ["Pavlaka"] });
+  const empty = await saveMeal({ ...input, name: "Sendvič bez namirnica", occurredAt: "2026-11-15T12:00:00Z" });
+  let journal = await readJournal();
+  const suggestion = latestMealSuggestions(journal.history).find(m => m.name === "Sendvič")!;
+  expect(suggestion.id).toBe(latest);
+  expect(suggestion.foodIds).toEqual([journal.catalog.find(f => f.name === "Kečap")!.id]);
+  expect(latestMealSuggestions(journal.history).find(m => m.id === empty)?.foodIds).toEqual([]);
+  const before = journal.history.find(m => m.id === latest);
+  await saveMeal({ ...input, name: suggestion.name, foodIds: suggestion.foodIds, occurredAt: "2026-11-16T12:00:00Z", mealType: "snack" });
+  journal = await readJournal();
+  expect(journal.history.find(m => m.id === latest)).toEqual(before);
+  expect(journal.history.find(m => m.occurredAt === "2026-11-16T12:00:00.000Z")?.mealType).toBe("snack");
+  const tieA = await saveMeal({ ...input, name: "Tie", occurredAt: "2026-11-17T12:00:00Z", newFoods: ["Kečap"] });
+  const tieB = await saveMeal({ ...input, name: "Tie", occurredAt: "2026-11-17T12:00:00Z" });
+  await db.update(meals).set({ createdAt: new Date("2026-11-18T00:00:00Z") }).where(eq(meals.id, tieA));
+  expect(latestMealSuggestions((await readJournal()).history).find(m => m.name === "Tie")?.id).toBe(tieA);
+  await db.update(meals).set({ createdAt: new Date("2026-11-18T00:00:00Z") }).where(eq(meals.id, tieB));
+  expect(latestMealSuggestions((await readJournal()).history).find(m => m.name === "Tie")?.id).toBe([tieA, tieB].sort().reverse()[0]);
+  as(subjectB);
+  expect(latestMealSuggestions((await readJournal()).history).some(m => m.name === "Sendvič")).toBe(false);
 });
