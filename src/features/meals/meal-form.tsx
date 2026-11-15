@@ -75,7 +75,10 @@ export function MealForm({ catalog, suggestions, onDirtyChange, onSavingChange, 
         if (!manualType) setValue("mealType", suggestedMealType(event.target.value));
       } })} type="datetime-local" required aria-invalid={!!errors.localTime} aria-describedby="time-help" className="control" />{errors.localTime && <span role="alert">Unesite datum i vreme.</span>}</label>
       <p id="time-help" className="field-help">Lokalno vreme vašeg uređaja. Možete uneti raniji obrok.</p>
-      <label className="field" htmlFor="meal-type">Tip obroka</label><select id="meal-type" {...register("mealType", { onChange: () => { setManualType(true); } })} className="control" aria-invalid={!!errors.mealType}>
+      <label className="field" htmlFor="meal-type">Tip obroka</label><select id="meal-type" {...register("mealType", { onChange: () => { setManualType(true); } })}
+        onClick={() => setManualType(true)}
+        onKeyDown={event => { if (event.key === "Enter") setManualType(true); }}
+        className="control" aria-invalid={!!errors.mealType}>
         {Object.entries(MEAL_TYPES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </select>{errors.mealType && <span role="alert">Izaberite tip obroka.</span>}
       <fieldset className="foods-field"><legend>Namirnice <span>(opciono)</span></legend>
