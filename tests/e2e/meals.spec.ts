@@ -14,6 +14,7 @@ test("empty catalog, multi-food entry, plain-text note, local time and refresh",
   }), url: AUTH_TEST_ORIGIN }]);
   await page.goto("/meals");
   await expect(page.getByText("Još nema sačuvanih obroka.")).toBeVisible();
+  await page.getByRole("button", { name: "Dodaj obrok", exact: true }).click();
   const expectedLocal = await page.evaluate(() => {
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -23,7 +24,7 @@ test("empty catalog, multi-food entry, plain-text note, local time and refresh",
   await page.getByLabel("Naziv obroka").fill("Sintetički ručak");
   await page.getByLabel("Datum i vreme", { exact: true }).fill("2026-01-10T12:30");
   for (const food of ["Pirinač", "Paradajz"]) {
-    await page.getByLabel("Nova namirnica", { exact: true }).fill(food);
+    await page.getByLabel("Pretraži ili dodaj namirnicu", { exact: true }).fill(food);
     await page.getByRole("button", { name: "Dodaj namirnicu" }).click();
   }
   const note = "Sintetička napomena\n<script>window.syntheticXss = true</script>";
@@ -31,12 +32,14 @@ test("empty catalog, multi-food entry, plain-text note, local time and refresh",
   await page.getByRole("button", { name: "Sačuvaj obrok" }).click();
   await expect(page.getByRole("status")).toHaveText("Obrok je sačuvan.");
   await page.reload();
-  const article = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Sintetički ručak" }) });
+  const article = page.locator(".mobile-history article:visible, .desktop-history tbody tr:visible").filter({ hasText: "Sintetički ručak" });
   await expect(article).toContainText(note);
   await expect(article).toContainText("Pirinač");
   await expect(article).toContainText("Paradajz");
   await expect(article.locator("time")).toContainText("12:30");
   expect(await page.evaluate(() => "syntheticXss" in window)).toBe(false);
+  await page.getByRole("button", { name: "Dodaj obrok", exact: true }).click();
+  await page.getByLabel("Pretraži ili dodaj namirnicu").fill("Pir");
   await expect(page.getByLabel("Pirinač", { exact: true })).toBeVisible();
 
   // Reuse one existing food and save another entry without a note.
@@ -46,9 +49,9 @@ test("empty catalog, multi-food entry, plain-text note, local time and refresh",
   await page.getByRole("button", { name: "Sačuvaj obrok" }).click();
   await expect(page.getByRole("status")).toHaveText("Obrok je sačuvan.");
   await page.reload();
-  await expect(page.getByRole("article").first()).toContainText("Noviji obrok");
-  await expect(page.getByRole("article").first()).toContainText("Pirinač");
-  await expect(page.getByRole("article").first()).not.toContainText("Paradajz");
+  await expect(page.locator(".mobile-history article:visible, .desktop-history tbody tr:visible").first()).toContainText("Noviji obrok");
+  await expect(page.locator(".mobile-history article:visible, .desktop-history tbody tr:visible").first()).toContainText("Pirinač");
+  await expect(page.locator(".mobile-history article:visible, .desktop-history tbody tr:visible").first()).not.toContainText("Paradajz");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 
   const otherContext = await browser.newContext();

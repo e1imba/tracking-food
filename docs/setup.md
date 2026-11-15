@@ -65,3 +65,19 @@ redosled, namirnice i napomenu. Prijaviti drugi nalog i proveriti prazan privatn
 dnevnik/katalog; odjaviti se i otvoriti `/meals` direktno. Nepostojeće vreme pri DST
 prelazu se odbija; ponovljeni sat koristi prvi trenutak. Pravu Google OAuth proveru
 uraditi prema README-u, bez unošenja stvarnih zdravstvenih podataka.
+
+## Ručna provera redizajna (issue #13)
+
+Sa sintetičkim nalogom otvoriti `/` i proveriti preusmerenje na `/meals`.
+Na 360/390/768/1440 px proveriti prazan pregled, više datuma, dugačke reči i
+napomene, proširenje sadržaja, izbor postojećih i novih namirnica i retroaktivni
+unos. Na desktopu je tabela, ispod 1024 px grupisani redovi. Skrol do kraja ne
+sme sakriti poslednji unos iza island-a. Meni i dijalog proveriti Tab/Shift+Tab,
+Escape i vraćanje fokusa; odustati od potvrde odbacivanja pa nastaviti unos.
+Simulirati neuspeh mreže i proveriti da polja ostaju popunjena.
+
+Na fizičkom telefonu dodatno proveriti otvorenu softversku tastaturu (naziv i
+napomena), dostupnost dugmeta za čuvanje i safe-area u portrait/landscape režimu.
+Playwright smanjenje viewport-a proverava raspored, ali ne zamenjuje ovu proveru
+u Safari/Chrome uređaja. Vizuelni primeri sa sintetičkim podacima su u
+`screenshots/issue-13-*.png`. Za ponovno snimanje: `CAPTURE_UI=1 npm run test:e2e`.

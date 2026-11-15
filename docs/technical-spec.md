@@ -1,6 +1,6 @@
 # Tracking Food — Tehnička dokumentacija
 
-**Verzija 0.8 · 14.11.2026. (Europe/Belgrade)**
+**Verzija 0.9 · 15.11.2026. (Europe/Belgrade)**
 
 Predlog arhitekture i plan razvoja za MVP. Funkcionalni zahtevi su u dokumentu „Funkcionalna dokumentacija“ (u repozitorijumu `docs/functional-spec.md`).
 
@@ -85,7 +85,11 @@ Tok: validacija naziva/vremena i liste namirnica → identifikacija ili kreiranj
 - Pre hostinga i čuvanja stvarnih podataka proceniti obaveze privatnosti i regulatorni okvir; izolacija podataka po korisniku je obavezna od prvog trajnog unosa i testira se između dva naloga.
 
 ## 7. Datum, vreme i korisnički interfejs
-Trenutke čuvati kao `timestamptz`. Na unosu browser pretvara lokalno vreme uređaja u UTC ISO trenutak, a prikaz koristi trenutnu zonu uređaja. Nepostojeća vremena tokom DST prelaza se odbijaju; ponovljeni sat koristi prvi trenutak. Istorija je silazna po `occurred_at`, zatim `created_at` i ID-ju za stabilan redosled. Na telefonu donja navigacija Dashboard/Obroci/Simptomi i plutajuće dugme za unos; na desktopu bočna navigacija. Formulari moraju raditi na uskom ekranu i biti dostupni tastaturom.
+Trenutke čuvati kao `timestamptz`. Na unosu browser pretvara lokalno vreme uređaja u UTC ISO trenutak, a prikaz koristi trenutnu zonu uređaja. Nepostojeća vremena tokom DST prelaza se odbijaju; ponovljeni sat koristi prvi trenutak. Istorija je silazna po `occurred_at`, zatim `created_at` i ID-ju za stabilan redosled. Issue #13: `/` proverava sesiju i preusmerava na `/meals`. Zajednički `(protected)` layout sadrži okvir; stranice i operacije i dalje zasebno proveravaju identitet. Server čita istoriju i katalog postojećim servisom; klijent formatira/grupiše po lokalnom datumu. Desktop >=1024 px koristi sidebar od 240 px i tabelu; manji ekrani header i levi drawer. Telefon ima centrirani island sa jednom akcijom za obrok (plus i fork/knife SVG), desktop floating dugme dole desno. Nema tab bara ni neimplementiranih destinacija.
+
+Unos koristi minimalni shadcn-style Dialog zasnovan na Radix UI (`@radix-ui/react-dialog`) za focus trap/restore, Escape i modalnu izolaciju. Na telefonu bottom sheet, na većem ekranu modal do 560 px. Skroluje se telo formulara, footer ostaje vidljiv; `interactive-widget=resizes-content`, visualViewport resize/scroll i safe-area insets prilagođavaju panel tastaturi. Pretraga kataloga prikazuje ograničen skrolujući prostor rezultata i uklonjive izbore; nije autocomplete prethodnih obroka. Uspeh zatvara panel uz refresh i status, greška čuva unos. Dirty stanje uključuje polja, izbore i tekst pretrage; inicijalno vreme nije izmena. Zatvaranje traži potvrdu za izmenjen unos, a tokom čuvanja je blokirano. Pregled rezerviše prostor za floating kontrolu. Stil i kontrolna lista: `.agents/skills/styling/SKILL.md`.
+
+**DECIDE NOW:** postojeći Server Actions, RHF/Zod i Radix-backed UI primitive ispunjavaju dogovoreni tok bez novog servisa. **DEFER:** paginacija/filteri do zahteva ili merljivog problema sa obimom. **NOT NEEDED:** migracije i generički design-system projekat (KISS/YAGNI, repozitorijumski engineering guide).
 
 ## 8. Testiranje i kvalitet
 - Unit: validacija, normalizacija naziva, završetak simptoma, vremenske granice.
@@ -208,6 +212,8 @@ Pre svake značajne izmene: (1) definisati korisnički problem i kriterijum uspe
 **Status:** Ovo je smernica za buduće predloge i review; ne znači da su pomenute funkcionalnosti implementirane niti da su otvorene odluke rešene.
 
 ## Istorija izmena
+
+- **0.9 · 15.11.2026.** — Issue #13: responzivni okvir i pregled, modalni unos i styling skill.
 
 - **0.8 · 14.11.2026.** — Issue #11: PostgreSQL/Drizzle, trajni vlasnici, transakcioni unos sa napomenom, izolacija i testovi. Lokalni postupak migracija i provera: [setup](setup.md#postgresql-i-obroci-issue-11).
 
