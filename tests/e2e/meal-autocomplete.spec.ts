@@ -40,17 +40,33 @@ test("local time follows automatic type, manual choice persists, new form resets
   page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "Zatvori unos" }).click();
   await open(page);
-  // Native keyboard confirmation of the already suggested value must count as manual.
-  // selectOption(currentValue) dispatches a synthetic change and misses this bug.
+  // The separate explicit confirmation locks the same proposed value.
   await time.fill("2026-01-10T04:00");
-  await type.focus();
-  await page.keyboard.press("Space");
-  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: "Zadrži predloženi tip" }).click();
   await time.fill("2026-01-10T17:00");
   await expect(type).toHaveValue("breakfast");
   page.once("dialog", dialog => dialog.dismiss());
   await page.getByRole("button", { name: "Zatvori unos" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
+});
+
+test("opening and canceling the type dropdown does not commit or dirty the form", async ({ page }) => {
+  await open(page);
+  const type = page.getByLabel("Tip obroka", { exact: true });
+  await type.click();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Zatvori unos" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+
+  await open(page);
+  const time = page.getByLabel("Datum i vreme", { exact: true });
+  await time.fill("2026-01-10T08:00");
+  await expect(type).toHaveValue("breakfast");
+  await type.click();
+  await page.keyboard.press("Escape");
+  await time.fill("2026-01-10T18:00");
+  await expect(type).toHaveValue("dinner");
+  await expect(page.getByRole("button", { name: "Zadrži predloženi tip" })).toBeVisible();
 });
 
 test("deduplicated prefix selects latest eaten foods, replaces tags, keeps other fields and saves independently", async ({ page, browser }, testInfo) => {
