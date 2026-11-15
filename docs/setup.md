@@ -19,6 +19,12 @@ MCP integracije uvodi kad postoji konkretan zadatak koji ih traži. Kandidati za
 
 ## PostgreSQL i obroci (issue #11)
 
+Na Windows radnoj stanici sa postojećim PostgreSQL paketom u `.local/pgsql`
+i bazom u `.local/pgdata`, `npm run dev` automatski pokreće bazu ako je zaustavljena.
+Već pokrenuta baza ostaje aktivna i posle zaustavljanja Next.js procesa.
+Za zaustavljanje ove lokalne Windows baze pokrenite `npm run db:stop`.
+Na ostalim računarima bazu pokrenite prema svom lokalnom podešavanju.
+
 Koristiti samo sintetičke podatke dok hosting, backup i restore nisu dogovoreni.
 Lokalno pokrenite PostgreSQL 17 (lozinku izaberite lokalno):
 

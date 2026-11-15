@@ -7,6 +7,7 @@
     "node": "24.x"
   },
   "scripts": {
+    "predev": "node scripts/start-local-db.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -16,6 +17,7 @@
     "test:e2e": "playwright test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File .local/stop-database.ps1",
     "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
