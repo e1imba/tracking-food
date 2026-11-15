@@ -21,21 +21,24 @@ async function setSession(context: BrowserContext, subject: string, maxAge = SES
   }]);
 }
 
-test("two accounts have independent sessions that survive refresh and logout", async ({ page, context, browser }) => {
+test("two accounts have independent sessions that survive refresh and logout", async ({ page, context, browser, isMobile }) => {
   await setSession(context, "account-a");
-  const otherContext = await browser.newContext({ baseURL: AUTH_TEST_ORIGIN });
+  const otherContext = await browser.newContext({ baseURL: AUTH_TEST_ORIGIN, viewport: { width: 1280, height: 900 } });
   try {
     await setSession(otherContext, "account-b");
     const otherPage = await otherContext.newPage();
     await page.goto("/");
     await otherPage.goto("/");
-    await expect(page.getByText("Prijavljeni ste kao account-a@example.test.")).toBeVisible();
-    await expect(otherPage.getByText("Prijavljeni ste kao account-b@example.test.")).toBeVisible();
+    await expect(page).toHaveURL("/meals");
+    if (isMobile) await page.getByRole("button", { name: "Otvori meni" }).click();
+    await expect(page.getByText("account-a@example.test").filter({ visible: true })).toBeVisible();
+    await expect(otherPage.getByText("account-b@example.test")).toBeVisible();
 
     await page.reload();
-    await expect(page.getByRole("button", { name: "Odjavi se" })).toBeVisible();
+    if (isMobile) await page.getByRole("button", { name: "Otvori meni" }).click();
+    await expect(page.getByRole("button", { name: "Odjavi se" }).filter({ visible: true })).toBeVisible();
     await page.goto("/login");
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL("/meals");
 
     const sessionResponse = await context.request.get("/api/auth/session");
     const session = await sessionResponse.json();
@@ -47,7 +50,8 @@ test("two accounts have independent sessions that survive refresh and logout", a
     expect(cookie?.httpOnly).toBe(true);
     expect(cookie?.sameSite).toBe("Lax");
 
-    await page.getByRole("button", { name: "Odjavi se" }).click();
+    if (isMobile) await page.getByRole("button", { name: "Otvori meni" }).click();
+    await page.getByRole("button", { name: "Odjavi se" }).filter({ visible: true }).click();
     await expect(page).toHaveURL("/login");
     expect((await context.cookies()).some(({ name }) => name === AUTH_TEST_COOKIE)).toBe(false);
     await page.goto("/");
@@ -55,12 +59,13 @@ test("two accounts have independent sessions that survive refresh and logout", a
     await page.reload();
     await expect(page.getByRole("button", { name: "Nastavi preko Google-a" })).toBeVisible();
     await otherPage.reload();
-    await expect(otherPage.getByText("Prijavljeni ste kao account-b@example.test.")).toBeVisible();
+    await expect(otherPage.getByText("account-b@example.test")).toBeVisible();
 
-    // Repeated access uses the same identity without registration or a user table.
+    // Repeated access uses the same verified Google identity.
     await setSession(context, "account-a");
     await page.goto("/");
-    await expect(page.getByText("Prijavljeni ste kao account-a@example.test.")).toBeVisible();
+    if (isMobile) await page.getByRole("button", { name: "Otvori meni" }).click();
+    await expect(page.getByText("account-a@example.test").filter({ visible: true })).toBeVisible();
   } finally {
     await otherContext.close();
   }

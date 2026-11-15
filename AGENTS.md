@@ -39,6 +39,8 @@ Follow `docs/workflow.md`: chat refinement -> owner-confirmed issue -> separate
 coding session -> linked PR -> separate review session -> fixes in coding session
 -> owner review and manual merge. The owner starts each session explicitly.
 Use `refine-ticket`, `implement-feature` and `review-code` skills for their roles.
+For UI changes, apply `.agents/skills/styling/SKILL.md` for the confirmed visual
+and interaction rules from issue #13.
 Keep acceptance criteria to 3–5 short, testable bullets. Issues and PRs preserve
 handoff context; do not rely on earlier session memory. Review tasks authorize
 posting findings on that PR. Do not auto-start other agents or sessions.

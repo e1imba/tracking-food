@@ -1,19 +1,23 @@
 # Tracking Food — Funkcionalna dokumentacija
 
-Funkcionalna dokumentacija · Verzija 0.7 · 14.11.2026.
+Funkcionalna dokumentacija · Verzija 0.8 · 15.11.2026.
 
 Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik pristupa svom privatnom dnevniku preko Google naloga. Služi za brz unos sa telefona, pregled istorije i kasniju pripremu izveštaja za razgovor sa lekarom.
 
 ## Prijava i odjava
 
 - Dugme „Nastavi preko Google-a“ otvara izbor Google naloga. Svaki nalog koji Google uspešno autentifikuje može da pristupi aplikaciji, bez aplikacione liste dozvoljenih naloga, posebne registracije ili lozinke. Prvi i ponovljeni pristup koriste isti tok.
-- Početna stranica `/` je zaštićena. Bez važeće sesije korisnik ide na `/login`. Svaki Google nalog ima nezavisnu sesiju, koja ostaje aktivna posle osvežavanja; podrazumevano traje 7 dana. Istek traži novu prijavu.
+- Početna stranica `/` je zaštićena i prijavljenog korisnika preusmerava na `/meals`. Bez važeće sesije korisnik ide na `/login`. Svaki Google nalog ima nezavisnu sesiju, koja ostaje aktivna posle osvežavanja; podrazumevano traje 7 dana. Istek traži novu prijavu.
 - „Odjavi se“ završava sesiju u tom pregledaču i vraća ekran za prijavu. Ponovno direktno otvaranje ili osvežavanje početne stranice traži prijavu. Google nalog u pregledaču ostaje prijavljen kod Google-a.
 - Za ovu fazu tok se proverava lokalno na `localhost`; Apple i hosting dolaze u posebnim tiketima. Issue #11 uvodi trajne korisnike i privatni unos/istoriju obroka. Svaki korisnik može da pristupi samo svojim unosima i izveštajima; svaki serverski pristup mora proveriti vlasništvo.
 
 ## Obroci
 
+- Pregled je početni ekran: na desktopu tabela Datum/vreme | Obrok | Namirnice | Napomena, na telefonu kompaktni redovi grupisani po lokalnom datumu. Dugi sadržaj može da se proširi preko „Prikaži više“.
+
 - Zaštićeni ekran `/meals` omogućava unos i privatnu istoriju od najnovijeg ka najstarijem po vremenu obroka. Unosi ostaju posle osvežavanja. Izmena, brisanje i predlozi prethodnih obroka slede u narednim tiketima.
+
+- Unos se otvara plutajućim dugmetom sa „+“ i ikonicom pribora za jelo, pristupačnog naziva „Dodaj obrok“. Na telefonu je skoro celoekranski bottom sheet, na desktopu modal. Formular skroluje unutar panela, uz dostupno dugme za čuvanje. Namirnice se pretražuju i biraju višestruko, uz uklanjanje izbora i dodavanje novih. Uspeh zatvara panel, osvežava pregled i prikazuje potvrdu; greška čuva unos. Zatvaranje popunjene forme traži potvrdu odbacivanja.
 
 - Formular sadrži naziv u slobodnom tekstu, višestruki izbor namirnica, opcionu višerednu Napomenu i datum i vreme. Podrazumevano vreme je sada, uz mogućnost retroaktivnog unosa. Nova namirnica može da se doda u katalog tokom unosa.
 
@@ -37,7 +41,7 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik
 
 - Dashboard prikazuje aktivne simptome i zajedničku hronologiju obroka, početaka i završetaka simptoma za izabrani dan ili period.
 
-- Responzivna web aplikacija koristi donju navigaciju na telefonu i bočnu na desktopu. Dugme „+“ sa svakog glavnog ekrana nudi unos obroka ili simptoma.
+- Trenutni okvir ima bočni meni od 1024 px i kompaktno zaglavlje sa levim drawer menijem na manjim ekranima. Meni prikazuje Obroke, nalog i odjavu. Na telefonu postoji donji centrirani island sa jednom akcijom za unos obroka; na desktopu dugme je dole desno. Simptomi i Dashboard dobijaju navigaciju tek u svojim tiketima.
 
 - Podaci se čuvaju na serveru. Pristup je privatan, uz prijavu i kontrolu pristupa. Osnovna rezervna kopija je deo prve verzije.
 
@@ -53,7 +57,7 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik
 
 - Kalorije, makronutrijenti i AI preporuke izostavljeni su iz MVP-a. PWA i zasebna nativna mobilna aplikacija ostaju opcije za kasnije.
 
-- Otvoreno je ponašanje predloga za istoimene obroke sa različitim namirnicama, potvrda brisanja ili vraćanje unosa, izgled ekrana, detalji PDF izveštaja, skala ocenjivanja i konačan naziv proizvoda.
+- Otvoreno je ponašanje predloga za istoimene obroke sa različitim namirnicama, potvrda brisanja ili vraćanje unosa, detalji PDF izveštaja, skala ocenjivanja i konačan naziv proizvoda.
 
 ## Principi proizvoda i redosled odluka
 
@@ -72,6 +76,8 @@ Vodič za razvoj je knjiga dr Milana Milanovića „Laws of Software Engineering
 - Zahtev za novu funkcionalnost prvo proceniti: potreba sada, odluka kasnije uz konkretan okidač ili funkcionalnost van obima. Prednost imaju brzina unosa, pouzdana istorija, privatnost i jednostavnost.
 
 ## Istorija izmena
+
+0.8 · 15.11.2026. — Issue #13: početni pregled, sidebar/drawer, island i izdvojen unos.
 
 0.7 · 14.11.2026. — Issue #11: privatni unos i trajna istorija, opciona napomena i lokalno vreme.
 
