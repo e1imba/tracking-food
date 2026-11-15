@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { MEAL_TYPES, type MealType } from "./meal-types";
 import { LocalTime } from "./local-time";
 
 const subscribe = () => () => {};
-type Meal = { id: string; name: string; note: string | null; occurredAt: string; foods: string[] };
+type Meal = { id: string; name: string; mealType: MealType | null; note: string | null; occurredAt: string; foods: string[] };
 function Expandable({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
   return text.length > 120 ? <details className="expandable" onToggle={event => setExpanded(event.currentTarget.open)}><summary><span className="preview">{text.slice(0, 100)}…</span><span className="show-more">{expanded ? "Prikaži manje" : "Prikaži više"}</span></summary><p className="full-text">{text}</p></details> : <p className="full-text">{text}</p>;
@@ -18,7 +19,7 @@ export function MealHistory({ history }: { history: Meal[] }) {
     groups.set(date, [...(groups.get(date) ?? []), meal]);
   }
   return <>
-    <div className="desktop-history"><table><caption className="sr-only">Privatna istorija obroka</caption><thead><tr><th>Datum/vreme</th><th>Obrok</th><th>Namirnice</th><th>Napomena</th></tr></thead><tbody>{history.map(meal => <tr key={meal.id}><td><LocalTime instant={meal.occurredAt} /></td><td className="meal-name">{meal.name}</td><td><Expandable text={meal.foods.join(", ") || "—"} /></td><td><Expandable text={meal.note || "—"} /></td></tr>)}</tbody></table></div>
-    <div className="mobile-history">{[...groups].map(([date, meals]) => <section key={date}><h2 className="date-heading">{date}</h2><ol>{meals.map(meal => <li key={meal.id}><article className="meal-row"><time dateTime={meal.occurredAt}>{local ? new Intl.DateTimeFormat("sr-Latn", { timeStyle: "short" }).format(new Date(meal.occurredAt)) : meal.occurredAt.slice(11, 16)}</time><div><h3>{meal.name}</h3>{meal.foods.length > 0 && <Expandable text={meal.foods.join(", ")} />}{meal.note && <div className="meal-note"><Expandable text={meal.note} /></div>}</div></article></li>)}</ol></section>)}</div>
+    <div className="desktop-history"><table><caption className="sr-only">Privatna istorija obroka</caption><thead><tr><th>Datum/vreme</th><th>Obrok</th><th>Namirnice</th><th>Napomena</th></tr></thead><tbody>{history.map(meal => <tr key={meal.id}><td><LocalTime instant={meal.occurredAt} /></td><td className="meal-name">{meal.name}<span className="meal-type">{meal.mealType ? MEAL_TYPES[meal.mealType] : "—"}</span></td><td><Expandable text={meal.foods.join(", ") || "—"} /></td><td><Expandable text={meal.note || "—"} /></td></tr>)}</tbody></table></div>
+    <div className="mobile-history">{[...groups].map(([date, meals]) => <section key={date}><h2 className="date-heading">{date}</h2><ol>{meals.map(meal => <li key={meal.id}><article className="meal-row"><time dateTime={meal.occurredAt}>{local ? new Intl.DateTimeFormat("sr-Latn", { timeStyle: "short" }).format(new Date(meal.occurredAt)) : meal.occurredAt.slice(11, 16)}</time><div><h3>{meal.name}</h3><p className="meal-type">{meal.mealType ? MEAL_TYPES[meal.mealType] : "—"}</p>{meal.foods.length > 0 && <Expandable text={meal.foods.join(", ")} />}{meal.note && <div className="meal-note"><Expandable text={meal.note} /></div>}</div></article></li>)}</ol></section>)}</div>
   </>;
 }

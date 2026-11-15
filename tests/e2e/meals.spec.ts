@@ -40,12 +40,13 @@ test("empty catalog, multi-food entry, plain-text note, local time and refresh",
   expect(await page.evaluate(() => "syntheticXss" in window)).toBe(false);
   await page.getByRole("button", { name: "Dodaj obrok", exact: true }).click();
   await page.getByLabel("Pretraži ili dodaj namirnicu").fill("Pir");
-  await expect(page.getByLabel("Pirinač", { exact: true })).toBeVisible();
+  await expect(page.getByRole("option", { name: "Pirinač", exact: true })).toBeVisible();
 
   // Reuse one existing food and save another entry without a note.
   await page.getByLabel("Naziv obroka").fill("Noviji obrok");
   await page.getByLabel("Datum i vreme", { exact: true }).fill("2026-02-10T08:00");
-  await page.getByLabel("Pirinač", { exact: true }).check();
+  await page.getByLabel("Pretraži ili dodaj namirnicu").focus();
+  await page.getByRole("option", { name: "Pirinač", exact: true }).click();
   await page.getByRole("button", { name: "Sačuvaj obrok" }).click();
   await expect(page.getByRole("status")).toHaveText("Obrok je sačuvan.");
   await page.reload();

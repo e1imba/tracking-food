@@ -1,6 +1,6 @@
 # Tracking Food — Tehnička dokumentacija
 
-**Verzija 0.9 · 15.11.2026. (Europe/Belgrade)**
+**Verzija 0.10 · 15.11.2026. (Europe/Belgrade)**
 
 Predlog arhitekture i plan razvoja za MVP. Funkcionalni zahtevi su u dokumentu „Funkcionalna dokumentacija“ (u repozitorijumu `docs/functional-spec.md`).
 
@@ -53,7 +53,7 @@ Glavni entiteti koriste UUID identifikatore. Vremenska polja su navedena po tabe
 
 **foods**: `id`, `user_id` (FK), `name`, `normalized_name` (za pretragu), `created_at`, `updated_at`. Unikatnost po korisniku i normalizovanom nazivu; čuvati originalni prikazni naziv.
 
-**meals**: `id`, `user_id` (FK), `name`, `note` (nullable text), `occurred_at` (timestamptz), `created_at`, `updated_at`.
+**meals**: `id`, `user_id` (FK), `name`, `meal_type` (nullable text, CHECK: breakfast/lunch/dinner/snack/other), `note` (nullable text), `occurred_at` (timestamptz), `created_at`, `updated_at`.
 
 **meal_foods**: `meal_id`, `food_id`, `user_id`, `food_name_snapshot`; kompozitni FK (`meal_id`, `user_id`) i (`food_id`, `user_id`) ograničavaju veze na istog vlasnika; kompozitni PK (`meal_id`, `food_id`). Snapshot štiti istorijski naziv od kasnijih promena kataloga; izmena jednog obroka ne menja druge.
 
@@ -62,9 +62,9 @@ Glavni entiteti koriste UUID identifikatore. Vremenska polja su navedena po tabe
 Indeksi: `meals(user_id, occurred_at DESC)`, `symptoms(user_id, started_at DESC)`, `foods(user_id, normalized_name)`. Vlasništvo se proverava i za povezane namirnice. Brisanje obroka briše samo njegove veze, ne katalog namirnica. Brisanje namirnica iz kataloga mora čuvati integritet istorije; za MVP ne nuditi globalno brisanje korišćene namirnice.
 
 ## 5. Funkcionalni tokovi
-**Dodaj obrok (issue #11)**: naziv je dovoljan, namirnice su opcione. Napomena do 5000 znakova je opcioni običan tekst, trim i prazno/beline → NULL. Nazivi do 200 znakova, najviše 100 izabranih i novih namirnica ukupno. Normalizacija namirnica: Unicode NFKC, trim, sažimanje belina i lowercase, uz očuvanje akcenata i postojećeg prikaznog naziva pri koliziji. Serverska Zod validacija prethodi transakciji; vlasnik se uzima iz `requireUser()`. Istorija i katalog se serverski ograničavaju na vlasnika.
+**Dodaj obrok (issues #11, #16)**: naziv i jedan validan tip su obavezni za novi unos, namirnice su opcione. `MEAL_TYPES` daje stabilne vrednosti i srpske labele. Zod odbija NULL/nedostajući/nevažeći tip pre transakcije. Migracija dodaje nullable kolonu sa CHECK bez backfill-a: stari zapisi ostaju NULL i prikazuju „—“. Napomena do 5000 znakova je opcioni običan tekst, trim i prazno/beline → NULL. Nazivi do 200 znakova, najviše 100 izabranih i novih namirnica ukupno. Normalizacija namirnica: Unicode NFKC, trim, sažimanje belina i lowercase, uz očuvanje akcenata i postojećeg prikaznog naziva pri koliziji. Serverska Zod validacija prethodi transakciji; vlasnik se uzima iz `requireUser()`. Istorija i katalog se serverski ograničavaju na vlasnika.
 
-Tok: validacija naziva/vremena i liste namirnica → identifikacija ili kreiranje namirnica → kreiranje obroka i veza u jednoj transakciji → osvežavanje istorije. Planirano za naredni tiket: autocomplete naziva obroka predlaže prethodne unose; izbor popunjava prethodni skup namirnica koji korisnik može izmeniti. Ako isto ime ima više skupova, pravilo izbora ostaje otvoreno.
+Tok: validacija naziva/vremena i liste namirnica → identifikacija ili kreiranje namirnica → kreiranje obroka i veza u jednoj transakciji → osvežavanje istorije. Autocomplete naziva koristi NFKC + trim + sažimanje belina + lowercase, čuva dijakritiku i prikazni naziv. Prefiks od prvog nepraznog znaka, bez fuzzy pretrage i bez automatskog izbora. Server čita samo vlasnikovu istoriju sa ID-jevima namirnica; deduplikacija punog naziva bira prvi zapis po occurred_at DESC, created_at DESC, id DESC. Klijent dobija samo deduplikovane predloge, bez javnog/shared cache-a. Eksplicitni izbor sinhrono zamenjuje sve izabrane/nove namirnice (i praznim skupom), bez kopiranja tipa/vremena/napomene. Dalje kucanje ne menja namirnice. Upis ponovo proverava vlasništvo svakog ID-ja. [ADR-003](decisions/003-meal-autocomplete.md).
 
 **Izmeni obrok**: proveri vlasništvo → ažuriraj obrok i njegove veze transakciono; drugi obroci ostaju nepromenjeni.
 
@@ -87,9 +87,9 @@ Tok: validacija naziva/vremena i liste namirnica → identifikacija ili kreiranj
 ## 7. Datum, vreme i korisnički interfejs
 Trenutke čuvati kao `timestamptz`. Na unosu browser pretvara lokalno vreme uređaja u UTC ISO trenutak, a prikaz koristi trenutnu zonu uređaja. Nepostojeća vremena tokom DST prelaza se odbijaju; ponovljeni sat koristi prvi trenutak. Istorija je silazna po `occurred_at`, zatim `created_at` i ID-ju za stabilan redosled. Issue #13: `/` proverava sesiju i preusmerava na `/meals`. Zajednički `(protected)` layout sadrži okvir; stranice i operacije i dalje zasebno proveravaju identitet. Server čita istoriju i katalog postojećim servisom; klijent formatira/grupiše po lokalnom datumu. Desktop >=1024 px koristi sidebar od 240 px i tabelu; manji ekrani header i levi drawer. Telefon ima centrirani island sa jednom akcijom za obrok (plus i fork/knife SVG), desktop floating dugme dole desno. Nema tab bara ni neimplementiranih destinacija.
 
-Unos koristi minimalni shadcn-style Dialog zasnovan na Radix UI (`@radix-ui/react-dialog`) za focus trap/restore, Escape i modalnu izolaciju. Na telefonu bottom sheet, na većem ekranu modal do 560 px. Skroluje se telo formulara, footer ostaje vidljiv; `interactive-widget=resizes-content`, visualViewport resize/scroll i safe-area insets prilagođavaju panel tastaturi. Pretraga kataloga prikazuje ograničen skrolujući prostor rezultata i uklonjive izbore; nije autocomplete prethodnih obroka. Uspeh zatvara panel uz refresh i status, greška čuva unos. Dirty stanje uključuje polja, izbore i tekst pretrage; inicijalno vreme nije izmena. Zatvaranje traži potvrdu za izmenjen unos, a tokom čuvanja je blokirano. Pregled rezerviše prostor za floating kontrolu. Stil i kontrolna lista: `.agents/skills/styling/SKILL.md`.
+Unos koristi minimalni shadcn-style Dialog zasnovan na Radix UI (`@radix-ui/react-dialog`) za focus trap/restore, Escape i modalnu izolaciju. Na telefonu bottom sheet, na većem ekranu modal do 560 px. Skroluje se telo formulara, footer ostaje vidljiv; `interactive-widget=resizes-content`, visualViewport resize/scroll i safe-area insets prilagođavaju panel tastaturi. Oba autocomplete-a imaju combobox/listbox semantiku unutar focus trap-a, strelice/Enter/Escape i ograničen skrolujući dropdown. Enter ne šalje formu, Escape prvo zatvara otvoreni dropdown. Namirnice koriste postojeći normalizovani contains, izabrane opcije se uklanjaju iz rezultata i prikazuju kao uklonjivi tagovi bez duplikata. Uspeh zatvara panel uz refresh i status, greška čuva unos. Tip se predlaže iz lokalnog datetime-local polja, bez UTC/server sata: [04:00,12:00) breakfast, [12:00,17:00) lunch, [17:00,24:00) dinner, [00:00,04:00) other. snack je ručni izbor. Promena vremena ažurira predlog samo do prvog ručnog izbora tipa; nova forma resetuje režim. Server validira poslatu vrednost i ne izvodi novi tip iz trenutka. Dirty stanje uključuje polja, ručni izbor tipa (i iste vrednosti), tagove i tekst pretrage; inicijalno vreme i automatski tip nisu izmena. Zatvaranje traži potvrdu za izmenjen unos, a tokom čuvanja je blokirano. Pregled rezerviše prostor za floating kontrolu. Stil i kontrolna lista: `.agents/skills/styling/SKILL.md`.
 
-**DECIDE NOW:** postojeći Server Actions, RHF/Zod i Radix-backed UI primitive ispunjavaju dogovoreni tok bez novog servisa. **DEFER:** paginacija/filteri do zahteva ili merljivog problema sa obimom. **NOT NEEDED:** migracije i generički design-system projekat (KISS/YAGNI, repozitorijumski engineering guide).
+**DECIDE NOW:** postojeći Server Actions, RHF/Zod i Radix-backed UI primitive ispunjavaju dogovoreni tok bez novog servisa. **DEFER:** paginacija/filteri do zahteva ili merljivog problema sa obimom. **NOT NEEDED:** generički design-system projekat (KISS/YAGNI, repozitorijumski engineering guide).
 
 ## 8. Testiranje i kvalitet
 - Unit: validacija, normalizacija naziva, završetak simptoma, vremenske granice.
@@ -108,7 +108,7 @@ Hosting je zamenljiv (Vercel ili drugi Next.js kompatibilan hosting). PostgreSQL
 
 ## 11. Otvorene odluke pre implementacije
 1. Trajni korisnici i vlasništvo rešeni su u [ADR-002](decisions/002-meal-persistence.md); Google autentifikacija i sesija u [ADR-001](decisions/001-google-auth.md).
-2. Autocomplete za isti naziv obroka sa različitim skupovima namirnica.
+2. Autocomplete razrešen u #16 i ADR-003: poslednji pojeden obrok istog normalizovanog punog naziva; podesivi tipovi samo uz budući eksplicitni zahtev.
 3. Potvrda brisanja ili undo; politika brisanja korišćenih namirnica.
 4. Backup interval, retencija, restore procedura i izvoz podataka.
 5. Izbor hostinga, deployment pipeline i konkretne verzije paketa.
@@ -212,6 +212,8 @@ Pre svake značajne izmene: (1) definisati korisnički problem i kriterijum uspe
 **Status:** Ovo je smernica za buduće predloge i review; ne znači da su pomenute funkcionalnosti implementirane niti da su otvorene odluke rešene.
 
 ## Istorija izmena
+
+- **0.10 · 15.11.2026.** — Issue #16: nullable tip sa CHECK i validacijom novih unosa, lokalni predlog, privatni autocomplete i stabilan izbor poslednjeg pojedenog obroka.
 
 - **0.9 · 15.11.2026.** — Issue #13: responzivni okvir i pregled, modalni unos i styling skill.
 

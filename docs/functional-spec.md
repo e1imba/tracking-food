@@ -1,6 +1,6 @@
 # Tracking Food — Funkcionalna dokumentacija
 
-Funkcionalna dokumentacija · Verzija 0.8 · 15.11.2026.
+Funkcionalna dokumentacija · Verzija 0.9 · 15.11.2026.
 
 Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik pristupa svom privatnom dnevniku preko Google naloga. Služi za brz unos sa telefona, pregled istorije i kasniju pripremu izveštaja za razgovor sa lekarom.
 
@@ -15,19 +15,25 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik
 
 - Pregled je početni ekran: na desktopu tabela Datum/vreme | Obrok | Namirnice | Napomena, na telefonu kompaktni redovi grupisani po lokalnom datumu. Dugi sadržaj može da se proširi preko „Prikaži više“.
 
-- Zaštićeni ekran `/meals` omogućava unos i privatnu istoriju od najnovijeg ka najstarijem po vremenu obroka. Unosi ostaju posle osvežavanja. Izmena, brisanje i predlozi prethodnih obroka slede u narednim tiketima.
+- Zaštićeni ekran `/meals` omogućava unos i privatnu istoriju od najnovijeg ka najstarijem po vremenu obroka. Unosi ostaju posle osvežavanja. Izmena i brisanje slede u narednim tiketima; privatni predlozi naziva uvedeni su u #16.
 
-- Unos se otvara plutajućim dugmetom sa „+“ i ikonicom pribora za jelo, pristupačnog naziva „Dodaj obrok“. Na telefonu je skoro celoekranski bottom sheet, na desktopu modal. Formular skroluje unutar panela, uz dostupno dugme za čuvanje. Namirnice se pretražuju i biraju višestruko, uz uklanjanje izbora i dodavanje novih. Uspeh zatvara panel, osvežava pregled i prikazuje potvrdu; greška čuva unos. Zatvaranje popunjene forme traži potvrdu odbacivanja.
+- Unos se otvara plutajućim dugmetom sa „+“ i ikonicom pribora za jelo, pristupačnog naziva „Dodaj obrok“. Na telefonu je skoro celoekranski bottom sheet, na desktopu modal. Formular skroluje unutar panela, uz dostupno dugme za čuvanje. Namirnice se pretražuju u autocomplete dropdown-u bez checkboxova i biraju višestruko kao uklonjivi tagovi bez duplikata, uz dodavanje novih. Uspeh zatvara panel, osvežava pregled i prikazuje potvrdu; greška čuva unos. Zatvaranje popunjene forme traži potvrdu odbacivanja.
 
-- Formular sadrži naziv u slobodnom tekstu, višestruki izbor namirnica, opcionu višerednu Napomenu i datum i vreme. Podrazumevano vreme je sada, uz mogućnost retroaktivnog unosa. Nova namirnica može da se doda u katalog tokom unosa.
+- Formular sadrži naziv u slobodnom tekstu, tip obroka, višestruki izbor namirnica, opcionu višerednu Napomenu i datum i vreme. Podrazumevano vreme je sada, uz mogućnost retroaktivnog unosa. Nova namirnica može da se doda u katalog tokom unosa.
 
-- Planirano za naredni tiket: izbor prethodnog obroka iz predloga popunjava njegov skup namirnica, koji korisnik može da prilagodi pre čuvanja. Predlozi mogu da pomognu pri tipfelerima, uz očuvanje unetog teksta.
+- Naziv od prvog nepraznog znaka predlaže sopstvene ranije obroke po prefiksu, bez fuzzy pretrage. Isti puni naziv se deduplikuje preko NFKC, trim, sažimanja belina i lowercase, uz očuvanje dijakritike. „Sendvič“ i „Sendvič sa pavlakom“ ostaju različiti predlozi. Novi naziv može slobodno da se sačuva.
+
+- Samo eksplicitni izbor predloga zamenjuje namirnice skupom poslednjeg pojedenog istoimenog obroka (vreme obroka, pa vreme kreiranja i ID silazno), uključujući prazan skup. Tip, vreme i napomena se ne kopiraju. Korisnik može da promeni tagove; prethodni obroci ostaju nepromenjeni. Samo kucanje ili naknadna izmena naziva ne menja namirnice.
+
+- Tačno pet fiksnih tipova: Doručak, Ručak, Večera, Užina i Ostalo. Lokalno polje „Datum i vreme“ automatski predlaže Doručak od 04:00 do 11:59, Ručak od 12:00 do 16:59, Večeru od 17:00 do 23:59 i Ostalo od 00:00 do 03:59. Užina se bira ručno. Promena vremena prati predlog dok korisnik ručno ne izabere tip; zatim se njegov izbor zadržava. Svaka nova forma resetuje taj režim. Inicijalni predlog nije izmena, ručni izbor i promena vremena jesu. Novi obroci obavezno čuvaju tip; stari ostaju bez tipa i prikazuju „—“.
+
+- Dropdown-i rade tastaturom: strelice menjaju aktivni predlog, Enter bira bez slanja forme, Escape prvo zatvara otvoreni dropdown. Izabrane namirnice se ne nude ponovo. Katalog zadržava contains pretragu.
 
 - Napomena se čuva uz obrok i prikazuje kao običan tekst u privatnoj istoriji; prazan unos ili same beline znače da napomene nema. Obrok radi i sa praznim katalogom i bez namirnica. Nove namirnice i obrok čuvaju se zajedno; pri grešci ništa od tog unosa ne ostaje delimično sačuvano.
 
 - Vreme se unosi i prikazuje u lokalnoj zoni uređaja. Nepostojeće vreme pri prelasku na letnje računanje se odbija; ponovljeni sat pri povratku koristi prvi trenutak.
 
-- Svaki unos čuva svoj skup namirnica. Naziv je dovoljan za opis obroka. Obavezne kategorije i poseban editor recepata ili šablona izostavljeni su iz prve faze.
+- Svaki unos čuva svoj skup namirnica. Naziv je dovoljan za opis obroka. Fiksni tip obroka je obavezan za nove unose; korisničke kategorije i poseban editor recepata ili šablona nisu deo ove faze.
 
 ## Simptomi
 
@@ -57,7 +63,7 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik
 
 - Kalorije, makronutrijenti i AI preporuke izostavljeni su iz MVP-a. PWA i zasebna nativna mobilna aplikacija ostaju opcije za kasnije.
 
-- Otvoreno je ponašanje predloga za istoimene obroke sa različitim namirnicama, potvrda brisanja ili vraćanje unosa, detalji PDF izveštaja, skala ocenjivanja i konačan naziv proizvoda.
+- Otvorena je potvrda brisanja ili vraćanje unosa, detalji PDF izveštaja, skala ocenjivanja i konačan naziv proizvoda.
 
 ## Principi proizvoda i redosled odluka
 
@@ -71,11 +77,13 @@ Vodič za razvoj je knjiga dr Milana Milanovića „Laws of Software Engineering
 
 - Princip najmanjeg iznenađenja: retroaktivni unos, promena vremena, završavanje simptoma i brisanje moraju imati očekivano i jasno ponašanje. Ne sugerisati uzročno-posledičnu vezu između obroka i simptoma.
 
-- Odluke o istoimenim obrocima, potvrdi brisanja i detaljima interakcije donositi pri izradi odgovarajućih ekrana, uz proveru stvarnih primera; dizajn izveštaja i pravila ishrane odložiti do njihovih faza.
+- Pravilo istoimenih obroka rešava #16 (poslednji pojeden); odluke o potvrdi brisanja donositi pri izradi tog toka; dizajn izveštaja i pravila ishrane odložiti do njihovih faza.
 
 - Zahtev za novu funkcionalnost prvo proceniti: potreba sada, odluka kasnije uz konkretan okidač ili funkcionalnost van obima. Prednost imaju brzina unosa, pouzdana istorija, privatnost i jednostavnost.
 
 ## Istorija izmena
+
+0.9 · 15.11.2026. — Issue #16: pet tipova sa lokalnim predlogom, autocomplete naziva i namirnica, poslednji pojeden istoimeni obrok.
 
 0.8 · 15.11.2026. — Issue #13: početni pregled, sidebar/drawer, island i izdvojen unos.
 

@@ -87,3 +87,26 @@ napomena), dostupnost dugmeta za čuvanje i safe-area u portrait/landscape reži
 Playwright smanjenje viewport-a proverava raspored, ali ne zamenjuje ovu proveru
 u Safari/Chrome uređaja. Vizuelni primeri sa sintetičkim podacima su u
 `screenshots/issue-13-*.png`. Za ponovno snimanje: `CAPTURE_UI=1 npm run test:e2e`.
+
+## Unos i predlozi obroka (issue #16)
+
+Pre pokretanja nove verzije primeniti `npm run db:migrate` nad lokalnom razvojnom
+bazom. Migracija `0001_magical_marvex.sql` dodaje nullable `meal_type` sa CHECK;
+postojeći obroci zadržavaju podatke i tip NULL („—“). Server zahteva validan tip za
+svaki novi unos. Produkciona migracija ostaje zasebno odobrena operacija.
+
+Sa sintetičkim nalogom proveriti tipove na granicama 00:00/04:00/12:00/17:00,
+retroaktivno lokalno vreme, ručni izbor Užine i novu formu koja ponovo prati vreme.
+Sačuvati dva istoimena obroka sa različitim namirnicama; kasnije evidentiran
+stariji obrok ne sme pobediti poslednji pojeden. „Sen“ daje jedan predlog za
+„Sendvič“ i poseban za „Sendvič prazan“. Izbor praznog briše trenutne tagove;
+izbor drugog popunjava njegove namirnice bez promene tipa, vremena i napomene.
+Promeniti tagove, sačuvati, osvežiti i proveriti da prethodni obroci ostaju isti.
+Drugi nalog nema te predloge. Proveriti Tab, strelice, Enter, Escape i neuspeo upis.
+
+Playwright pokriva desktop i mobilni Chromium, kao i postojeći pregled na
+360/390/768/1440 px. `CAPTURE_UI_ISSUE16=1 npm run test:e2e` obnavlja sintetičke
+[390 px](screenshots/issue-16-form-390.png) i
+[1440 px](screenshots/issue-16-form-1440.png) snimke autocomplete forme.
+Fizički telefon, prava softverska tastatura i safe area u Safari/Chrome ostaju
+ručna provera; browser emulacija nije zamena za njih.

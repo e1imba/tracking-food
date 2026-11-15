@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { MEAL_TYPES, type MealType } from "./meal-types";
+
+export const mealTypeSchema = z.enum(Object.keys(MEAL_TYPES) as [MealType, ...MealType[]]);
 
 export const nameSchema = z.string().trim().min(1).max(200);
 export function normalizeFoodName(name: string) {
@@ -6,6 +9,7 @@ export function normalizeFoodName(name: string) {
 }
 export const mealInputSchema = z.object({
   name: nameSchema,
+  mealType: mealTypeSchema,
   note: z.string().max(5000).optional().transform((value) => value?.trim() || null),
   occurredAt: z.iso.datetime({ offset: true }),
   foodIds: z.array(z.uuid()).max(100),
@@ -14,6 +18,7 @@ export const mealInputSchema = z.object({
 
 export const mealFormSchema = z.object({
   name: nameSchema,
+  mealType: mealTypeSchema,
   note: z.string().max(5000),
   localTime: z.string().min(1),
 });
