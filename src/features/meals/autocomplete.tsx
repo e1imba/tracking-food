@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type InputHTMLAttributes, type Ref, type ReactNode } from "react";
+import { useId, useLayoutEffect, useRef, useState, type InputHTMLAttributes, type Ref, type ReactNode } from "react";
 
 type Option = { id: string; name: string };
 
@@ -20,6 +20,13 @@ export function Autocomplete({ label, value, options, onChange, onSelect, inputP
   const list = useRef<HTMLUListElement>(null);
   const expanded = open && !!value.trim();
   const activeIndex = active >= 0 && active < options.length ? active : -1;
+
+  // The list is mounted only after opening; scroll after React commits the active option.
+  useLayoutEffect(() => {
+    if (expanded && activeIndex >= 0) {
+      list.current?.children[activeIndex]?.scrollIntoView({ block: "nearest" });
+    }
+  }, [expanded, activeIndex]);
 
   function choose(index: number) {
     if (!options[index]) return;
@@ -50,7 +57,6 @@ export function Autocomplete({ label, value, options, onChange, onSelect, inputP
           event.preventDefault(); setOpen(true);
           const next = options.length ? (event.key === "ArrowDown" ? (activeIndex + 1) % options.length : (activeIndex <= 0 ? options.length - 1 : activeIndex - 1)) : -1;
           setActive(next);
-          list.current?.children[next]?.scrollIntoView({ block: "nearest" });
         } else if (event.key === "Enter") {
           // An autocomplete Enter never submits the surrounding meal form.
           event.preventDefault();
