@@ -40,8 +40,14 @@ test("local time follows automatic type, manual choice persists, new form resets
   page.once("dialog", dialog => dialog.accept());
   await page.getByRole("button", { name: "Zatvori unos" }).click();
   await open(page);
-  // Selecting even the current suggested type explicitly counts as an edit.
-  await type.selectOption(await type.inputValue());
+  // Native keyboard confirmation of the already suggested value must count as manual.
+  // selectOption(currentValue) dispatches a synthetic change and misses this bug.
+  await time.fill("2026-01-10T04:00");
+  await type.focus();
+  await page.keyboard.press("Space");
+  await page.keyboard.press("Enter");
+  await time.fill("2026-01-10T17:00");
+  await expect(type).toHaveValue("breakfast");
   page.once("dialog", dialog => dialog.dismiss());
   await page.getByRole("button", { name: "Zatvori unos" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -159,4 +165,26 @@ test("new food action works by keyboard inside the modal and Escape closes its p
   await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: "Ukloni Nova namirnica" })).toBeVisible();
   await save(page);
+});
+
+test("ArrowUp after Escape scrolls a long autocomplete list to the active last option", async ({ page }) => {
+  await open(page);
+  const food = page.getByRole("combobox", { name: "Pretraži ili dodaj namirnicu" });
+  // Populate a synthetic catalog larger than the dropdown viewport.
+  for (let index = 0; index < 12; index++) {
+    await addFood(page, `Namirnica ${String(index).padStart(2, "0")}`);
+  }
+  await page.getByLabel("Naziv obroka").fill("Test skrolovanja");
+  await save(page);
+  await open(page);
+  await food.fill("Namirnica");
+  await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(12);
+  await page.keyboard.press("Escape");
+  await expect(food).toHaveAttribute("aria-expanded", "false");
+  await page.keyboard.press("ArrowUp");
+  await expect(food).toHaveAttribute("aria-activedescendant", /option-11$/);
+  const last = page.getByRole("listbox").getByRole("option").last();
+  await expect(last).toBeInViewport();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: "Ukloni Namirnica 11" })).toBeVisible();
 });
