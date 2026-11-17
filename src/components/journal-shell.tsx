@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { logout } from "../app/actions/auth";
 import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogTrigger, DialogClose } from "./ui/dialog";
 
 export function JournalShell({ account, children }: { account: string; children: React.ReactNode }) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   function navigation() {
     return <>
       <div className="brand">Tracking Food<span>Lični dnevnik</span></div>
-      <nav aria-label="Glavna navigacija"><Link href="/meals" aria-current="page" className="nav-active" onClick={() => setOpen(false)}>Obroci</Link></nav>
+      <nav aria-label="Glavna navigacija">{[["/meals", "Obroci"], ["/symptoms", "Simptomi"]].map(([href, label]) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined} className={pathname === href ? "nav-link nav-active" : "nav-link"} onClick={() => setOpen(false)}>{label}</Link>)}</nav>
       <div className="account"><p>{account}</p><form action={logout}><button className="secondary" type="submit">Odjavi se</button></form></div>
     </>;
   }

@@ -1,6 +1,6 @@
 # Tracking Food — Tehnička dokumentacija
 
-**Verzija 0.10 · 15.11.2026. (Europe/Belgrade)**
+**Verzija 0.11 · 17.11.2026. (Europe/Belgrade)**
 
 Predlog arhitekture i plan razvoja za MVP. Funkcionalni zahtevi su u dokumentu „Funkcionalna dokumentacija“ (u repozitorijumu `docs/functional-spec.md`).
 
@@ -57,7 +57,7 @@ Glavni entiteti koriste UUID identifikatore. Vremenska polja su navedena po tabe
 
 **meal_foods**: `meal_id`, `food_id`, `user_id`, `food_name_snapshot`; kompozitni FK (`meal_id`, `user_id`) i (`food_id`, `user_id`) ograničavaju veze na istog vlasnika; kompozitni PK (`meal_id`, `food_id`). Snapshot štiti istorijski naziv od kasnijih promena kataloga; izmena jednog obroka ne menja druge.
 
-**symptoms**: `id`, `user_id` (FK), `name`, `started_at` (timestamptz), `ended_at` (nullable timestamptz), `severity` (nullable integer 1–10), `note` (nullable text), `created_at`, `updated_at`. CHECK `ended_at IS NULL OR ended_at >= started_at`.
+**symptoms** (implementirano u #18): `id`, `user_id` (FK), `name`, `started_at` (timestamptz), `ended_at` (nullable timestamptz), `severity` (nullable integer 1–10), `note` (nullable text), `created_at`, `updated_at`. CHECK `severity BETWEEN 1 AND 10` i `ended_at IS NULL OR ended_at >= started_at`. Aditivna migracija `0002_tidy_lester.sql` dodaje tabelu i indeks bez menjanja postojećih obroka.
 
 Indeksi: `meals(user_id, occurred_at DESC)`, `symptoms(user_id, started_at DESC)`, `foods(user_id, normalized_name)`. Vlasništvo se proverava i za povezane namirnice. Brisanje obroka briše samo njegove veze, ne katalog namirnica. Brisanje namirnica iz kataloga mora čuvati integritet istorije; za MVP ne nuditi globalno brisanje korišćene namirnice.
 
@@ -68,14 +68,14 @@ Tok: validacija naziva/vremena i liste namirnica → identifikacija ili kreiranj
 
 **Izmeni obrok**: proveri vlasništvo → ažuriraj obrok i njegove veze transakciono; drugi obroci ostaju nepromenjeni.
 
-**Simptomi**: kreiranje bez završetka, više aktivnih istovremeno; završavanje postavlja `ended_at` (podrazumevano sada, uz izmenu); omogućiti retroaktivne izmene.
+**Simptomi (#18)**: `/symptoms` → `requireUser()` → privatna istorija preko servisa; Server Action proverava sesiju, servis uzima trajnog vlasnika preko zajedničkog `requireOwner()` i validira Zod ulaz pre upisa. Naziv 1–200 znakova posle trim-a, obavezan ISO početak sa zonom, opciona celobrojna jačina 1–10 i napomena do 5000 znakova (trim; prazno → NULL). Klijent pretvara lokalno vreme postojećim DST-proverenim helperom. Vlasnik i završetak se ne prihvataju iz zahteva; svaki novi unos ima `ended_at = NULL`, više aktivnih je dozvoljeno. Čitanje ograničeno na vlasnika, started_at DESC, created_at DESC, id DESC; klijentu samo potrebna polja. Završavanje, izmene, brisanje, trajanje i posebna lista završenih čekaju tiket životnog ciklusa; predlozi naziva čekaju zahtev za ubrzanje unosa.
 
 **Dashboard**: agregirana hronološka lista obroka i početaka/završetaka simptoma za izabrani period; bez zaključivanja da je obrok izazvao simptom.
 
 ## 6. Autentifikacija, privatnost i bezbednost
 - Google OIDC preko Auth.js v5 (`next-auth@5.0.0-beta.32`), kompatibilan sa Next.js 16 i React 19, uz asinhrone `headers()`/`cookies()` API-je. Svaki uspešno autentifikovan Google nalog je prihvaćen; prvi i ponovljeni pristup koriste isti tok bez registracionog formulara ili lozinke. Google traži samo `openid email profile`, uz `prompt=select_account`.
 - Šifrovana JWT sesija u HttpOnly, SameSite=Lax kolačiću (Secure na HTTPS). Podrazumevano trajanje određuje jedino `SESSION_MAX_AGE_SECONDS` u `src/lib/auth/config.ts` (7 dana); Auth.js primenjuje istu vrednost na JWT i kolačić. Auth.js session endpoint obnavlja rok važeće sesije. Nevažeći ili istekao token se odbija. Odjava briše sesiju iz tog pregledača, bez odjave Google naloga. Nema auth DB adaptera; trajni korisnici dnevnika uvedeni su zasebno kroz issue #11.
-- `/` i `/meals` pozivaju serverski `requireUser()` i bez verifikovanog identiteta preusmeravaju na `/login`. Auth.js GET/POST handler je na `/api/auth/[...nextauth]`; prijava i odjava koriste Server Actions. `/login` i `/api/health` su javni. Provera u layout-u ili prisustvo kolačića nisu dovoljni za zaštitu.
+- `/`, `/meals` i `/symptoms` pozivaju serverski `requireUser()` i bez verifikovanog identiteta preusmeravaju na `/login`. Auth.js GET/POST handler je na `/api/auth/[...nextauth]`; prijava i odjava koriste Server Actions. `/login` i `/api/health` su javni. Provera u layout-u ili prisustvo kolačića nisu dovoljni za zaštitu.
 - Lokalni OAuth callback: `http://localhost:3000/api/auth/callback/google`. `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` i `AUTH_URL` idu u `.env.local`; samo placeholderi u `.env.example`. Google tokeni se ne izlažu u sesiji klijenta. JWT callback čuva verifikovani Google `providerAccountId` (`sub`) kao stabilan identitet; Auth.js generisani korisnički UUID bez adaptera nije stabilan između prijava. Auth logger beleži samo kategoriju greške, bez uzroka, tokena ili profila. Lokalno podešavanje i ručna provera su u [README](../README.md#google-oauth-on-localhost). Apple i hosting su van issue #7.
 - Autorizacija na svakoj serverskoj operaciji, uključujući čitanje; nikad ne verovati `user_id` sa klijenta. Unose dnevnika, povezane namirnice i buduće izveštaje ograničiti na vlasnika na serveru, prema verifikovanom identitetu sesije.
 - Validacija svih Server Actions ulaza preko Zod; zaštita od prevelikih payload-a i ograničavanje zahteva prema potrebi.
@@ -85,7 +85,7 @@ Tok: validacija naziva/vremena i liste namirnica → identifikacija ili kreiranj
 - Pre hostinga i čuvanja stvarnih podataka proceniti obaveze privatnosti i regulatorni okvir; izolacija podataka po korisniku je obavezna od prvog trajnog unosa i testira se između dva naloga.
 
 ## 7. Datum, vreme i korisnički interfejs
-Trenutke čuvati kao `timestamptz`. Na unosu browser pretvara lokalno vreme uređaja u UTC ISO trenutak, a prikaz koristi trenutnu zonu uređaja. Nepostojeća vremena tokom DST prelaza se odbijaju; ponovljeni sat koristi prvi trenutak. Istorija je silazna po `occurred_at`, zatim `created_at` i ID-ju za stabilan redosled. Issue #13: `/` proverava sesiju i preusmerava na `/meals`. Zajednički `(protected)` layout sadrži okvir; stranice i operacije i dalje zasebno proveravaju identitet. Server čita istoriju i katalog postojećim servisom; klijent formatira/grupiše po lokalnom datumu. Desktop >=1024 px koristi sidebar od 240 px i tabelu; manji ekrani header i levi drawer. Telefon ima centrirani island sa jednom akcijom za obrok (plus i fork/knife SVG), desktop floating dugme dole desno. Nema tab bara ni neimplementiranih destinacija.
+Trenutke čuvati kao `timestamptz`. Na unosu browser pretvara lokalno vreme uređaja u UTC ISO trenutak, a prikaz koristi trenutnu zonu uređaja. Nepostojeća vremena tokom DST prelaza se odbijaju; ponovljeni sat koristi prvi trenutak. Istorija je silazna po `occurred_at`, zatim `created_at` i ID-ju za stabilan redosled. Issue #13: `/` proverava sesiju i preusmerava na `/meals`. Zajednički `(protected)` layout sadrži okvir; stranice i operacije i dalje zasebno proveravaju identitet. Server čita istoriju i katalog postojećim servisom; klijent formatira/grupiše po lokalnom datumu. Desktop >=1024 px koristi sidebar od 240 px i tabelu; manji ekrani header i levi drawer. Telefon ima centrirani island sa jednom akcijom za obrok (plus i fork/knife SVG), desktop floating dugme dole desno. Meni sadrži Obroke i Simptome i označava aktivnu rutu u sidebar-u i drawer-u. Simptomi koriste isti modal/bottom-sheet, stanje greške, potvrdu odbacivanja i lokalni prikaz vremena; njihova floating kontrola ima plus, puls i pristupačan naziv „Dodaj simptom“. Nema tab bara ni neimplementiranih destinacija.
 
 Unos koristi minimalni shadcn-style Dialog zasnovan na Radix UI (`@radix-ui/react-dialog`) za focus trap/restore, Escape i modalnu izolaciju. Na telefonu bottom sheet, na većem ekranu modal do 560 px. Skroluje se telo formulara, footer ostaje vidljiv; `interactive-widget=resizes-content`, visualViewport resize/scroll i safe-area insets prilagođavaju panel tastaturi. Oba autocomplete-a imaju combobox/listbox semantiku unutar focus trap-a, strelice/Enter/Escape i ograničen skrolujući dropdown. Enter ne šalje formu, Escape prvo zatvara otvoreni dropdown. Namirnice koriste postojeći normalizovani contains, izabrane opcije se uklanjaju iz rezultata i prikazuju kao uklonjivi tagovi bez duplikata. Uspeh zatvara panel uz refresh i status, greška čuva unos. Tip se predlaže iz lokalnog datetime-local polja, bez UTC/server sata: [04:00,12:00) breakfast, [12:00,17:00) lunch, [17:00,24:00) dinner, [00:00,04:00) other. snack je ručni izbor. Promena vremena ažurira predlog samo do prvog ručnog izbora tipa; nova forma resetuje režim. Server validira poslatu vrednost i ne izvodi novi tip iz trenutka. Dirty stanje uključuje polja, ručni izbor tipa (i iste vrednosti), tagove i tekst pretrage; inicijalno vreme i automatski tip nisu izmena. Zatvaranje traži potvrdu za izmenjen unos, a tokom čuvanja je blokirano. Pregled rezerviše prostor za floating kontrolu. Stil i kontrolna lista: `.agents/skills/styling/SKILL.md`.
 
@@ -94,7 +94,7 @@ Unos koristi minimalni shadcn-style Dialog zasnovan na Radix UI (`@radix-ui/reac
 ## 8. Testiranje i kvalitet
 - Unit: validacija, normalizacija naziva, završetak simptoma, vremenske granice.
 - Integration (test DB): transakcije, FK, izolacija po korisniku, očuvanje istorije, retroaktivne izmene.
-- E2E: prijava, unos/izmena/brisanje obroka, autocomplete, aktivan/završen simptom, pregled hronologije.
+- Trenutni testovi za #18: Zod/action, aditivna migracija, dva sintetička vlasnika, više aktivnih unosa, retroaktivno vreme, desktop/mobile unos i refresh, navigacija, greška i potvrda odbacivanja. Završavanje, izmene/brisanje i hronologija testiraju se kada budu implementirani.
 - Za issue #7 CI koristi sintetičke Auth.js JWT sesije i proverava zaštitu rute, dva nezavisna identiteta, osvežavanje, istek, neispravan token i odjavu, bez pravih Google kredencijala. Stvarni izbor naloga, prvi i ponovljeni Google pristup proveravaju se ručno na localhost-u.
 - CI: lint, typecheck, test, build; migracije se primenjuju kontrolisano i odvojeno od build-a.
 
@@ -188,7 +188,7 @@ Početna faza je završena kada privatan repo ima obe specifikacije i starter ki
 **Referenca:** [Vodič za inženjerske odluke](engineering-laws.md) povezuje relevantna poglavlja knjige *Laws of Software Engineering* sa odlukama o razvoju Tracking Food-a.
 
 ### 13.1 Podrazumevani pristup
-- **Gall’s Law:** razvijati najmanji koristan tok do upotrebljivog stanja pre širenja. Prvi vertikalni segment: prijava → unos obroka → trajno čuvanje → istorija → izmena/brisanje. Tek potom slede simptomi i Dashboard.
+- **Gall’s Law:** razvijati najmanji koristan tok do upotrebljivog stanja pre širenja. Prvi vertikalni segment: prijava → unos obroka → trajno čuvanje → istorija → izmena/brisanje. Vlasnik u #18 daje prednost unosu simptoma pre izmena/brisanja obroka; Dashboard sledi kasnije.
 - **KISS + YAGNI:** jedan Next.js projekat i PostgreSQL; nema dodatnog API-ja, mikroservisa, event bus-a, generičkog framework-a, AI integracije, mobilne aplikacije ili MCP-a bez konkretne potrebe. Ne uvoditi slojeve samo radi buduće fleksibilnosti.
 - **Tesler’s Law + Least Astonishment:** minimizovati korake za unos; podrazumevano trenutno vreme, retroaktivna korekcija, jednostavan izbor prethodnog obroka. Ne skrivati korisniku značajne promene podataka niti automatski donositi medicinske zaključke.
 - **Technical Debt + Boy Scout Rule:** kada je brži kompromis opravdan, evidentirati njegov razlog, uticaj i uslov za vraćanje; popravljati male probleme pri radu u neposrednom kodu. Ne prepravljati preventivno ceo sistem.
@@ -212,6 +212,8 @@ Pre svake značajne izmene: (1) definisati korisnički problem i kriterijum uspe
 **Status:** Ovo je smernica za buduće predloge i review; ne znači da su pomenute funkcionalnosti implementirane niti da su otvorene odluke rešene.
 
 ## Istorija izmena
+
+- **0.11 · 17.11.2026.** — Issue #18: aditivna tabela simptoma, privatni servis/action i responzivni unos/pregled sa testovima.
 
 - **0.10 · 15.11.2026.** — Issue #16: nullable tip sa CHECK i validacijom novih unosa, lokalni predlog, privatni autocomplete i stabilan izbor poslednjeg pojedenog obroka.
 

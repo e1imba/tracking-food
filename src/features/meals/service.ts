@@ -1,24 +1,13 @@
 import "server-only";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
-import { requireUser } from "../../lib/auth/require-user";
+import { requireOwner } from "../../lib/auth/require-owner";
 import { getDb } from "../../lib/db";
-import { foods, mealFoods, meals, users } from "../../lib/db/schema";
+import { foods, mealFoods, meals } from "../../lib/db/schema";
 import type { MealType } from "./meal-types";
 import { mealInputSchema, normalizeFoodName } from "./schema";
 
-async function owner() {
-  const identity = await requireUser();
-  const subject = identity.id;
-  if (!subject) throw new Error("Missing identity");
-  const db = getDb();
-  // Concurrent first access resolves to one persistent owner. Email is not identity.
-  const [user] = await db.insert(users).values({ googleSub: subject, email: identity.email })
-    .onConflictDoUpdate({ target: users.googleSub, set: { googleSub: subject } }).returning({ id: users.id });
-  return user.id;
-}
-
 export async function readJournal() {
-  const userId = await owner();
+  const userId = await requireOwner();
   const db = getDb();
   const catalog = await db.select({ id: foods.id, name: foods.name }).from(foods)
     .where(eq(foods.userId, userId)).orderBy(asc(foods.name));
@@ -40,7 +29,7 @@ export async function readJournal() {
 }
 
 export async function saveMeal(input: unknown) {
-  const userId = await owner();
+  const userId = await requireOwner();
   const data = mealInputSchema.parse(input);
   return getDb().transaction(async (tx) => {
     const selected = new Map<string, { id: string; name: string }>();
