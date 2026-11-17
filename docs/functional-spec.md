@@ -1,6 +1,6 @@
 # Tracking Food — Funkcionalna dokumentacija
 
-Funkcionalna dokumentacija · Verzija 0.9 · 15.11.2026.
+Funkcionalna dokumentacija · Verzija 0.10 · 17.11.2026.
 
 Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik pristupa svom privatnom dnevniku preko Google naloga. Služi za brz unos sa telefona, pregled istorije i kasniju pripremu izveštaja za razgovor sa lekarom.
 
@@ -37,17 +37,16 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik
 
 ## Simptomi
 
-- Formular sadrži naziv ili opis u slobodnom tekstu uz predloge, datum i vreme početka, opcionu jačinu od 1 do 10 i opcionu napomenu.
-
-- Simptom ostaje aktivan dok nema vreme završetka. Više simptoma može biti aktivno istovremeno. Akcija „Završi“ nudi trenutno vreme i dozvoljava da se unese raniji završetak, od vremena početka nadalje.
-
-- Ekran Simptomi ima liste aktivnih i završenih simptoma. Završeni unos prikazuje početak, završetak i trajanje. Unosi se mogu pregledati, izmeniti i obrisati.
+- Issue #18 isporučuje zaštićenu stranicu `/symptoms`, dodavanje i privatnu istoriju, najnoviji početak prvi. Prikazuju se naziv, lokalni datum/vreme početka, opciona jačina i napomena, uz prazno stanje.
+- Plutajuće dugme „Dodaj simptom“ sa plusom i ikonicom pulsa otvara bottom sheet na telefonu i modal na desktopu. Obavezni su naziv u slobodnom tekstu i datum/vreme početka (podrazumevano sada, ranije vreme dozvoljeno); jačina 1–10 i napomena su opcione. Uspeh zatvara unos i osvežava istoriju; greška čuva polja, a zatvaranje izmenjene forme traži potvrdu.
+- Novi simptomi imaju prazno vreme završetka i ostaju aktivni. Više aktivnih simptoma je dozvoljeno; svaki nalog vidi samo svoje unose, uključujući posle osvežavanja.
+- **Planirano za naredni tiket životnog ciklusa:** završavanje (sada ili ranije, od početka nadalje), izmena, brisanje, odvojeni završeni simptomi i trajanje. Predlozi naziva čekaju konkretan zahtev za ponavljani unos. Ove akcije trenutno nisu prikazane.
 
 ## Dashboard i navigacija
 
 - Dashboard prikazuje aktivne simptome i zajedničku hronologiju obroka, početaka i završetaka simptoma za izabrani dan ili period.
 
-- Trenutni okvir ima bočni meni od 1024 px i kompaktno zaglavlje sa levim drawer menijem na manjim ekranima. Meni prikazuje Obroke, nalog i odjavu. Na telefonu postoji donji centrirani island sa jednom akcijom za unos obroka; na desktopu dugme je dole desno. Simptomi i Dashboard dobijaju navigaciju tek u svojim tiketima.
+- Trenutni okvir ima bočni meni od 1024 px i kompaktno zaglavlje sa levim drawer menijem na manjim ekranima. Meni prikazuje Obroke, Simptome, nalog i odjavu; aktivna stranica je označena. Na telefonu postoji donji centrirani island sa jednom akcijom za unos obroka; na desktopu dugme je dole desno. Simptomi imaju odgovarajuću plutajuću akciju za unos; Dashboard dobija navigaciju tek u svom tiketu.
 
 - Podaci se čuvaju na serveru. Pristup je privatan, uz prijavu i kontrolu pristupa. Osnovna rezervna kopija je deo prve verzije.
 
@@ -69,7 +68,7 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik
 
 Vodič za razvoj je knjiga dr Milana Milanovića „Laws of Software Engineering“ (2026). Primena njenih principa na ovaj projekat opisana je u [vodiču za inženjerske odluke](engineering-laws.md).
 
-- Gall’s Law: isporučiti prvo kompletan, upotrebljiv tok za obroke (unos, čuvanje, istorija, izmena i brisanje), proveriti iskustvo korišćenja, a tek zatim dodavati simptome i Dashboard.
+- Gall’s Law: isporučiti prvo kompletan, upotrebljiv tok za obroke (unos, čuvanje, istorija, izmena i brisanje), proveriti iskustvo korišćenja. Potvrđeni prioritet vlasnika u #18 uvodi unos simptoma pre izmena/brisanja obroka; Dashboard ostaje kasnije.
 
 - KISS i YAGNI: ne širiti obim MVP-a na recepte, kalorije, AI, PWA, ocene obroka ili napredne izveštaje pre konkretne potrebe.
 
@@ -82,6 +81,8 @@ Vodič za razvoj je knjiga dr Milana Milanovića „Laws of Software Engineering
 - Zahtev za novu funkcionalnost prvo proceniti: potreba sada, odluka kasnije uz konkretan okidač ili funkcionalnost van obima. Prednost imaju brzina unosa, pouzdana istorija, privatnost i jednostavnost.
 
 ## Istorija izmena
+
+0.10 · 17.11.2026. — Issue #18: unos simptoma, privatna istorija i navigacija; životni ciklus odložen.
 
 0.9 · 15.11.2026. — Issue #16: pet tipova sa lokalnim predlogom, autocomplete naziva i namirnica, poslednji pojeden istoimeni obrok.
 

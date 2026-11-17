@@ -14,3 +14,13 @@ unosa, kao i vidljivost submit dugmeta pri visini viewport-a od 480 px.
 Ovo je browser emulacija: fizička softverska tastatura i hardverski safe-area
 na iOS/Android telefonu nisu ručno provereni u ovom okruženju. Postupak je u
 [setup vodiču](../setup.md#ručna-provera-redizajna-issue-13).
+
+## Issue #18 — Simptomi
+
+`issue-18-390.png` i `issue-18-1440.png` prikazuju privatnu istoriju;
+`issue-18-form-390.png` i `issue-18-form-1440.png` prikazuju bottom sheet/modal.
+Playwright i lokalni Chromium koriste samo sintetičke podatke. Testirani su
+360/390/768/1440 px, prazno stanje, dugi sadržaj, proširivanje, lokalno vreme,
+refresh, aktivna navigacija, tastatura/fokus/Escape, odbacivanje i neuspešan upis.
+Visina 480 px proverava vidljivost submit dugmeta. Ovo je browser emulacija;
+fizička softverska tastatura i hardverski safe-area ostaju za ručnu proveru.
