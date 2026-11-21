@@ -116,9 +116,9 @@ test("deduplicated prefix selects latest eaten foods, replaces tags, keeps other
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: "Ukloni Pavlaka" })).toBeVisible();
-  await food.fill("pav");
-  await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(0);
-  await page.keyboard.press("Escape");
+  await food.fill("Pavlaka");
+  await expect(page.getByText("Namirnica je već dodata.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Dodaj namirnicu" })).toHaveCount(0);
   await expect(food).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByRole("dialog")).toBeVisible();
   await food.fill("");
@@ -162,7 +162,7 @@ test("deduplicated prefix selects latest eaten foods, replaces tags, keeps other
   } finally { await other.close(); }
 });
 
-test("new food action works by keyboard inside the modal and Escape closes its popup first", async ({ page }) => {
+test("new food action works by keyboard and restores input focus", async ({ page }) => {
   await open(page);
   await page.getByLabel("Naziv obroka").fill("Novi obrok tastaturom");
   const food = page.getByRole("combobox", { name: "Pretraži ili dodaj namirnicu" });
@@ -172,15 +172,57 @@ test("new food action works by keyboard inside the modal and Escape closes its p
   await expect(page.getByRole("button", { name: "Ukloni Nova namirnica" })).toHaveCount(0);
   await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Dodaj namirnicu" })).toBeFocused();
-  await page.keyboard.press("Escape");
-  await expect(food).toBeFocused();
-  await expect(food).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.keyboard.press("ArrowUp");
-  await page.keyboard.press("Tab");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: "Ukloni Nova namirnica" })).toBeVisible();
+  await expect(food).toBeFocused();
   await save(page);
+});
+
+test("touch adds new and existing foods with the mobile dialog shortened", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chromium", "Uses touch input");
+  await open(page);
+  await page.getByLabel("Naziv obroka").fill("Prethodni obrok");
+  await addFood(page, "Beli hleb integralni");
+  await save(page);
+
+  await open(page);
+  await page.getByLabel("Naziv obroka").fill("Obrok sa hlebom");
+  const dialog = page.getByRole("dialog", { name: "Novi obrok" });
+  const food = dialog.getByRole("combobox", { name: "Pretraži ili dodaj namirnicu" });
+  const add = dialog.getByRole("button", { name: "Dodaj namirnicu" });
+  const option = dialog.getByRole("option", { name: "Beli hleb integralni" });
+  await food.fill("Beli hleb");
+  // Software keyboards can shrink and pan the visual viewport while leaving the layout viewport unchanged.
+  await page.evaluate(() => {
+    const viewport = window.visualViewport!;
+    Object.defineProperties(viewport, { height: { value: 360 }, offsetTop: { value: 28 } });
+    viewport.dispatchEvent(new Event("resize"));
+  });
+  await expect.poll(async () => dialog.boundingBox()).toMatchObject({ height: 360, y: 28 });
+  await expect(food).toBeInViewport({ ratio: 1 });
+  await expect(add).toBeInViewport({ ratio: 1 });
+  await expect(option).toBeInViewport({ ratio: 1 });
+  await add.tap();
+  await expect(food).toBeFocused();
+  await expect(food).toHaveValue("");
+  await expect(dialog.getByRole("button", { name: "Ukloni Beli hleb", exact: true })).toBeVisible();
+
+  await food.fill("  BELI  HLEB  ");
+  await expect(dialog.getByText("Namirnica je već dodata.")).toBeVisible();
+  await expect(add).toHaveCount(0);
+  await expect(option).toBeVisible();
+  await food.fill("Beli hleb integralni");
+  await expect(add).toHaveCount(0);
+  await option.tap();
+  await expect(dialog.getByRole("button", { name: "Ukloni Beli hleb integralni" })).toBeVisible();
+  await food.tap();
+  const submit = dialog.getByRole("button", { name: "Sačuvaj obrok" });
+  await expect(submit).toBeInViewport({ ratio: 1 });
+  await submit.tap();
+  await expect(dialog).toHaveCount(0);
+  await page.reload();
+  const meal = page.locator(".mobile-history article").filter({ hasText: "Obrok sa hlebom" });
+  await expect(meal).toContainText("Beli hleb, Beli hleb integralni");
 });
 
 test("ArrowUp after Escape scrolls a long autocomplete list to the active last option", async ({ page }) => {

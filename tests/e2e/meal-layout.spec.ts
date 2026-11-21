@@ -22,8 +22,8 @@ test("drawer, modal focus, Escape, discard and failed save retain input", async 
   await expect(menu).toBeFocused();
   await openEntry(page);
   const name = page.getByLabel("Naziv obroka");
-  await expect(name).toBeFocused();
-  await page.keyboard.press("Shift+Tab");
+  await expect(page.getByRole("heading", { name: "Novi obrok" })).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Zatvori unos" })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -55,12 +55,17 @@ for (const width of [360, 390, 768, 1440]) {
     await page.getByRole("button", { name: "Dodaj namirnicu" }).click();
     const note = "Duga sintetička napomena bez privatnih podataka. ".repeat(12);
     await page.getByLabel("Napomena (opciono)").fill(note);
-    // A reduced viewport exercises the same footer layout used with a keyboard.
+    // A reduced viewport exercises the layout without a native software keyboard.
     await page.setViewportSize({ width, height: 480 });
     await page.getByLabel("Napomena (opciono)").focus();
     await expect(page.getByRole("button", { name: "Sačuvaj obrok" })).toBeInViewport();
-    const footer = await page.getByRole("button", { name: "Sačuvaj obrok" }).boundingBox();
-    expect(footer!.y + footer!.height).toBeLessThanOrEqual(480);
+    const save = await page.getByRole("button", { name: "Sačuvaj obrok" }).boundingBox();
+    const dialog = await page.getByRole("dialog").boundingBox();
+    expect(save!.y + save!.height).toBeLessThanOrEqual(480);
+    if (width < 640) {
+      expect(dialog).toMatchObject({ x: 0, y: 0, width, height: 480 });
+      expect(save!.y).toBeLessThan(64);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.setViewportSize({ width, height: 900 });
     await page.getByRole("button", { name: "Sačuvaj obrok" }).click();
