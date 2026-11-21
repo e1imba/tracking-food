@@ -5,14 +5,16 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createMeal } from "../../app/actions/meals";
+import { DialogDescription, DialogTitle } from "../../components/ui/dialog";
 import { localDateTime, localTimeToInstant, mealFormSchema, nameSchema, normalizeFoodName, type MealFormValues } from "./schema";
 import { Autocomplete } from "./autocomplete";
 import { MEAL_TYPES, suggestedMealType } from "./meal-types";
 import { matchingMeals, type MealSuggestion } from "./suggestions";
 
-export function MealForm({ catalog, suggestions, onDirtyChange, onSavingChange, onSuccess }: {
+export function MealForm({ catalog, suggestions, onClose, onDirtyChange, onSavingChange, onSuccess }: {
   catalog: { id: string; name: string }[];
   suggestions: MealSuggestion[];
+  onClose: () => void;
   onDirtyChange: (dirty: boolean) => void;
   onSavingChange: (saving: boolean) => void;
   onSuccess: () => void;
@@ -26,6 +28,7 @@ export function MealForm({ catalog, suggestions, onDirtyChange, onSavingChange, 
   const [selected, setSelected] = useState<string[]>([]);
   const [newFoods, setNewFoods] = useState<string[]>([]);
   const [foodName, setFoodName] = useState("");
+  const [foodFeedback, setFoodFeedback] = useState("");
   const [message, setMessage] = useState("");
   const mealName = useWatch({ control, name: "name" });
   const dirty = !!(manualType || dirtyFields.name || dirtyFields.note || dirtyFields.localTime || dirtyFields.mealType || selected.length || newFoods.length || foodName);
@@ -39,17 +42,28 @@ export function MealForm({ catalog, suggestions, onDirtyChange, onSavingChange, 
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
   const query = normalizeFoodName(foodName);
+  const existing = query ? catalog.find(food => normalizeFoodName(food.name) === query) : undefined;
+  const alreadyAdded = (existing && selected.includes(existing.id)) || newFoods.some(name => normalizeFoodName(name) === query);
+  const limitReached = selected.length + newFoods.length >= 100;
+  const foodProblem = alreadyAdded ? "Namirnica je već dodata."
+    : limitReached && query ? "Možete dodati najviše 100 namirnica." : "";
   const matches = query ? catalog.filter(food => !selected.includes(food.id) && normalizeFoodName(food.name).includes(query)) : [];
+
+  function selectFood(id: string) {
+    if (limitReached) return;
+    setSelected(ids => [...new Set([...ids, id])]);
+    setFoodName("");
+    setFoodFeedback(`Dodato: ${catalog.find(food => food.id === id)?.name}.`);
+  }
 
   function addFood() {
     const parsed = nameSchema.safeParse(foodName);
-    if (!parsed.success) { setMessage("Unesite naziv namirnice (do 200 znakova)."); return; }
-    const normalized = normalizeFoodName(parsed.data);
-    const existing = catalog.find(food => normalizeFoodName(food.name) === normalized);
-    if (existing) setSelected(ids => [...new Set([...ids, existing.id])]);
-    else if (!newFoods.some(name => normalizeFoodName(name) === normalized)) setNewFoods([...newFoods, parsed.data]);
-    setFoodName(""); setMessage("");
+    if (!parsed.success || existing || alreadyAdded || limitReached) return;
+    setNewFoods(names => [...names, parsed.data]);
+    setFoodName("");
+    setFoodFeedback(`Dodato: ${parsed.data}.`);
   }
+  const saveLabel = isSubmitting ? "Čuvanje…" : "Sačuvaj obrok";
   return <form className="meal-form" onSubmit={handleSubmit(async values => {
     setMessage("");
     onSavingChange(true);
@@ -60,14 +74,25 @@ export function MealForm({ catalog, suggestions, onDirtyChange, onSavingChange, 
     } catch { setMessage("Obrok nije sačuvan. Proverite lokalni datum i vreme i pokušajte ponovo."); }
     finally { onSavingChange(false); }
   })}>
+    <header className="panel-heading meal-heading">
+      <div>
+        <DialogTitle tabIndex={-1}>Novi obrok</DialogTitle>
+        <DialogDescription>Sačuvajte obrok u svoj privatni dnevnik.</DialogDescription>
+      </div>
+      <button className="icon-button" type="button" aria-label="Zatvori unos" onClick={onClose}>×</button>
+      <button className="primary meal-save-mobile" aria-label={saveLabel} disabled={isSubmitting} type="submit">
+        {isSubmitting ? saveLabel : "Sačuvaj"}
+      </button>
+    </header>
+    <p className="meal-save-status" role="status">{message}</p>
     <div className="form-scroll"><fieldset disabled={isSubmitting} className="min-w-0">
       <Autocomplete label="Naziv obroka" value={mealName} options={matchingMeals(suggestions, mealName)}
         onChange={value => setValue("name", value, { shouldDirty: true })}
         onSelect={id => {
           const meal = suggestions.find(meal => meal.id === id)!;
           setValue("name", meal.name, { shouldDirty: true });
-          setSelected([...meal.foodIds]); setNewFoods([]); setFoodName("");
-        }} inputProps={{ ...register("name"), required: true, maxLength: 200, autoFocus: true,
+          setSelected([...meal.foodIds]); setNewFoods([]); setFoodName(""); setFoodFeedback("");
+        }} inputProps={{ ...register("name"), required: true, maxLength: 200,
           "aria-invalid": !!errors.name, "aria-describedby": errors.name ? "name-error" : undefined }}
         emptyMessage="Nema ranijih obroka. Možete sačuvati novi naziv." />
       {errors.name && <span id="name-error" role="alert">Unesite naziv (do 200 znakova).</span>}
@@ -84,18 +109,21 @@ export function MealForm({ catalog, suggestions, onDirtyChange, onSavingChange, 
       </button>}
       {errors.mealType && <span role="alert">Izaberite tip obroka.</span>}
       <fieldset className="foods-field"><legend>Namirnice <span>(opciono)</span></legend>
-        <div className="selected-foods" aria-label="Izabrane namirnice">
-          {catalog.filter(food => selected.includes(food.id)).map(food => <button type="button" key={food.id} className="food-chip" aria-label={`Ukloni ${food.name}`} onClick={() => setSelected(selected.filter(id => id !== food.id))}>{food.name}<span aria-hidden="true">×</span></button>)}
-          {newFoods.map(name => <button type="button" key={name} className="food-chip" aria-label={`Ukloni ${name}`} onClick={() => setNewFoods(newFoods.filter(food => food !== name))}>{name} (nova)<span aria-hidden="true">×</span></button>)}
-        </div>
         <Autocomplete label="Pretraži ili dodaj namirnicu" value={foodName} options={matches}
-          onChange={setFoodName} onSelect={id => { setSelected(ids => [...new Set([...ids, id])]); setFoodName(""); }}
-          inputProps={{ maxLength: 200, "aria-describedby": "foods-help" }} emptyMessage="Nema pronađenih neizabranih namirnica."
-          action={<button type="button" onClick={addFood} className="secondary">Dodaj namirnicu</button>} />
-        <p id="foods-help" className="field-help">{catalog.length === 0 ? "Katalog je prazan. Dodajte prvu namirnicu ili sačuvajte samo naziv obroka. " : "Pretražite katalog i izaberite namirnice iz predloga. "}Nove namirnice se čuvaju zajedno sa obrokom. Najviše 100 po obroku.</p>
+          onChange={value => { setFoodName(value); setFoodFeedback(""); }} onSelect={selectFood}
+          inputProps={{ maxLength: 200, "aria-describedby": "foods-help foods-feedback" }}
+          addAction={query && !existing && !alreadyAdded && !limitReached ? { label: "Dodaj namirnicu", onAdd: addFood } : undefined} />
+        <p id="foods-feedback" className={foodProblem ? "field-help" : "sr-only"} aria-live="polite">
+          {foodProblem || foodFeedback}
+        </p>
+        <div className="selected-foods" aria-label="Izabrane namirnice">
+          {catalog.filter(food => selected.includes(food.id)).map(food => <button type="button" key={food.id} className="food-chip" aria-label={`Ukloni ${food.name}`} onClick={() => { setSelected(selected.filter(id => id !== food.id)); setFoodFeedback(""); }}>{food.name}<span aria-hidden="true">×</span></button>)}
+          {newFoods.map(name => <button type="button" key={name} className="food-chip" aria-label={`Ukloni ${name}`} onClick={() => { setNewFoods(newFoods.filter(food => food !== name)); setFoodFeedback(""); }}>{name} (nova)<span aria-hidden="true">×</span></button>)}
+        </div>
+        <p id="foods-help" className="field-help">Izaberite iz predloga ili dodajte novu namirnicu dugmetom +.</p>
       </fieldset>
       <label className="field">Napomena (opciono)<textarea {...register("note")} maxLength={5000} rows={3} className="control" aria-invalid={!!errors.note} />{errors.note && <span role="alert">Napomena može imati do 5000 znakova.</span>}</label>
     </fieldset></div>
-    <footer className="form-footer"><p role="status">{message}</p><button className="primary" disabled={isSubmitting} type="submit">{isSubmitting ? "Čuvanje…" : "Sačuvaj obrok"}</button></footer>
+    <footer className="form-footer meal-save-desktop"><button className="primary" disabled={isSubmitting} type="submit">{saveLabel}</button></footer>
   </form>;
 }

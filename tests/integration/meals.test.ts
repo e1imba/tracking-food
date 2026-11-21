@@ -144,6 +144,7 @@ it("suggests the latest eaten full name with owned food IDs and stable timestamp
   const tieA = await saveMeal({ ...input, name: "Tie", occurredAt: "2026-11-17T12:00:00Z", newFoods: ["Kečap"] });
   const tieB = await saveMeal({ ...input, name: "Tie", occurredAt: "2026-11-17T12:00:00Z" });
   await db.update(meals).set({ createdAt: new Date("2026-11-18T00:00:00Z") }).where(eq(meals.id, tieA));
+  await db.update(meals).set({ createdAt: new Date("2026-11-17T23:00:00Z") }).where(eq(meals.id, tieB));
   expect(latestMealSuggestions((await readJournal()).history).find(m => m.name === "Tie")?.id).toBe(tieA);
   await db.update(meals).set({ createdAt: new Date("2026-11-18T00:00:00Z") }).where(eq(meals.id, tieB));
   expect(latestMealSuggestions((await readJournal()).history).find(m => m.name === "Tie")?.id).toBe([tieA, tieB].sort().reverse()[0]);
