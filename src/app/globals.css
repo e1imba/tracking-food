@@ -137,3 +137,34 @@ input[type=datetime-local] { appearance: none; }
 }
 
 .nav-link { display: flex; align-items: center; min-height: 48px; padding: 12px 16px; border-radius: 12px; }
+
+.catalog-tabs { display: flex; gap: 4px; padding: 4px; width: fit-content; max-width: 100%; border: 1px solid var(--line); border-radius: 12px; background: white; }
+.catalog-tabs button { min-height: 44px; padding: 8px 16px; border-radius: 8px; color: var(--muted); font-size: 14px; font-weight: 600; }
+.catalog-tabs button[aria-selected=true] { color: #066856; background: #e8f5f0; }
+.catalog-tools { display: grid; gap: 12px; align-items: end; margin: 16px 0; }
+.catalog-tools .field { margin-top: 0; }
+.catalog-add { white-space: nowrap; padding-inline: 20px; font-weight: 600; }
+.catalog-add span { font-size: 24px; }
+.groups-panel { margin-top: 16px; }
+.catalog-confirmation:not(:empty) { margin-bottom: 16px; }
+.catalog-list { border: 1px solid var(--line); border-radius: 16px; background: white; }
+.catalog-row { display: flex; justify-content: space-between; align-items: start; gap: 12px; padding: 16px; }
+.catalog-row + .catalog-row { border-top: 1px solid var(--line); }
+.catalog-copy { min-width: 0; overflow-wrap: anywhere; }
+.catalog-title { font-weight: 600; overflow-wrap: anywhere; }
+.catalog-copy p, .catalog-ranges { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.catalog-ranges { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.catalog-error:not(:empty) { color: #a12c23; font-size: 13px; margin-top: 8px; }
+.score-range { margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px 12px; min-width: 0; }
+.score-range legend { padding: 0 4px; }
+.score-range-fields { display: grid; gap: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.score-range-fields .field { margin-top: 0; }
+.score-range-fields .control { padding-inline: 8px; }
+.score-range .secondary, .add-range { margin-top: 8px; }
+.group-members .autocomplete-dropdown { position: static; margin-top: 4px; }
+.meal-rating { font-size: 14px; color: var(--muted); }
+.meal-rating strong { color: #066856; font-weight: 600; }
+.meal-row .meal-rating { margin-block: 4px; }
+@media (min-width: 640px) {
+  .catalog-tools { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+}

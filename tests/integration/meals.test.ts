@@ -67,9 +67,9 @@ it("isolates two identities even with the same email and rejects foreign food ID
   as(subjectA);
   const foreign = (await readJournal()).catalog[0];
   as(subjectB);
-  expect(await readJournal()).toEqual({ catalog: [], history: [] });
+  expect(await readJournal()).toEqual({ catalog: [], history: [], rulesByFood: {} });
   await expect(saveMeal({ ...input, foodIds: [foreign.id], newFoods: ["Ne sačuvaj"] })).rejects.toThrow();
-  expect(await readJournal()).toEqual({ catalog: [], history: [] });
+  expect(await readJournal()).toEqual({ catalog: [], history: [], rulesByFood: {} });
   await saveMeal({ ...input, name: "Samo B", newFoods: [foreign.name] });
   const journalB = await readJournal();
   expect(journalB.history).toHaveLength(1);

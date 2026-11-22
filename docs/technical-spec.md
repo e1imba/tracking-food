@@ -1,6 +1,6 @@
 # Tracking Food — Tehnička dokumentacija
 
-**Verzija 0.11 · 17.11.2026. (Europe/Belgrade)**
+**Verzija 0.12 · 22.11.2026. (Europe/Belgrade)**
 
 Predlog arhitekture i plan razvoja za MVP. Funkcionalni zahtevi su u dokumentu „Funkcionalna dokumentacija“ (u repozitorijumu `docs/functional-spec.md`).
 
@@ -36,7 +36,8 @@ src/
   app/(protected)/dashboard/page.tsx
   app/(protected)/meals/page.tsx
   app/(protected)/symptoms/page.tsx
-  app/actions/{meals,symptoms}.ts
+  app/(protected)/foods/page.tsx
+  app/actions/{meals,symptoms,foods}.ts
   features/meals/{components,schemas,services,repositories}/
   features/symptoms/{components,schemas,services,repositories}/
   features/foods/{components,schemas,services,repositories}/
@@ -51,7 +52,11 @@ Glavni entiteti koriste UUID identifikatore. Vremenska polja su navedena po tabe
 
 **users**: UUID `id`, jedinstveni `google_sub`, opcioni `email`, `created_at`. Serverski verifikovani Google `sub` određuje trajnog vlasnika putem konkurentno bezbednog upsert-a; email nije autorizacioni ključ.
 
-**foods**: `id`, `user_id` (FK), `name`, `normalized_name` (za pretragu), `created_at`, `updated_at`. Unikatnost po korisniku i normalizovanom nazivu; čuvati originalni prikazni naziv.
+**foods**: `id`, `user_id` (FK), `name`, `normalized_name`, opcioni `group_id` i `base_score`, `time_ranges` (JSONB niz, podrazumevano `[]`), `created_at`, `updated_at`. Unikatnost po korisniku i normalizovanom nazivu čuva jedan prikazni naziv. FK (`group_id`, `user_id`) ograničava grupu na istog vlasnika, a jedna kolona garantuje najviše jednu grupu. CHECK ograničava osnovnu ocenu na 1–5 i zahteva prazna samostalna pravila za grupisane namirnice.
+
+**food_groups**: `id`, `user_id` (FK), `name`, opcioni `description` do 200 znakova, obavezni `base_score` 1–5, `time_ranges` (JSONB niz, podrazumevano `[]`), `created_at`, `updated_at`. Jedinstveni par (`id`, `user_id`) je cilj kompozitnog FK-a. Baza proverava da su vremenska pravila nizovi. Zod proverava svaki objekat sa `startHour`, `endHour` (0–23) i `score` (1–5), različite granice i odsustvo preklapanja. Intervali su deo jednog skupa pravila koji se čuva zajedno, uz vlasništvo i članstvo u relacionim kolonama.
+
+Migracija `0003_food_catalog.sql` aditivno uvodi grupu, nullable kolone, podrazumevani prazan niz i indeks `foods(user_id, group_id)`. Postojeće namirnice ostaju negrupisane i neocenjene. Trenutak, naziv, istorijski sastojci i veze obroka ostaju sačuvani.
 
 **meals**: `id`, `user_id` (FK), `name`, `meal_type` (nullable text, CHECK: breakfast/lunch/dinner/snack/other), `note` (nullable text), `occurred_at` (timestamptz), `created_at`, `updated_at`.
 
@@ -66,6 +71,10 @@ Indeksi: `meals(user_id, occurred_at DESC)`, `symptoms(user_id, started_at DESC)
 
 Tok: validacija naziva/vremena i liste namirnica → identifikacija ili kreiranje namirnica → kreiranje obroka i veza u jednoj transakciji → osvežavanje istorije. Autocomplete naziva koristi NFKC + trim + sažimanje belina + lowercase, čuva dijakritiku i prikazni naziv. Prefiks od prvog nepraznog znaka, bez fuzzy pretrage i bez automatskog izbora. Server čita samo vlasnikovu istoriju sa ID-jevima namirnica; deduplikacija punog naziva bira prvi zapis po occurred_at DESC, created_at DESC, id DESC. Klijent dobija samo deduplikovane predloge, bez javnog/shared cache-a. Eksplicitni izbor sinhrono zamenjuje sve izabrane/nove namirnice (i praznim skupom), bez kopiranja tipa/vremena/napomene. Dalje kucanje ne menja namirnice. Upis ponovo proverava vlasništvo svakog ID-ja. [ADR-003](decisions/003-meal-autocomplete.md).
 
+**Namirnice i obračun obroka (#23)**: `/foods` poziva `requireUser()` i učitava katalog i grupe jednog vlasnika iz istog DB snapshot-a. Svaki Server Action proverava sesiju, a servis određuje vlasnika preko `requireOwner()` i validira Zod ulaz. Korisnikov ID nikad ne dolazi iz forme. Isti normalizovani upsert služi katalogu, grupama i unosu obroka. Transakcija grupe proverava sve poslate ID-jeve namirnica i grupe, menja pravila i primenjuje dodavanje/uklanjanje članova. Uklanjanje važi samo za trenutno članstvo u toj grupi. Dodela grupi čisti samostalna pravila. Transakcije za čuvanje grupe i obroka sa namirnicama zaključavaju red vlasnika pre zaključavanja redova namirnica. To uključuje obroke koji samo povezuju postojeće namirnice, jer provera stranog ključa u `meal_foods` uzima zaključavanje nad tim redovima. Uspešne akcije osvežavaju `/foods` i `/meals`.
+
+Istorija obroka čita `meal_foods.food_id` i `meals.occurred_at` vlasnika i učitava efektivna pravila iz njegovog kataloga. Grupna pravila imaju prioritet nad samostalnim. Klijent koristi trenutnu zonu uređaja, kao i prikaz vremena obroka. Lokalni sat iz UTC trenutka uzima u obzir istorijski pomeraj zone i DST. Oba ponovljena sata pri povratku na zimsko računanje imaju ista pravila, a preskočeni lokalni sat nema odgovarajući trenutak. Interval je poluotvoren `[start, end)`, uz prelaz preko ponoći. Podudaranje koristi vremensku ocenu, inače osnovnu ako postoji. Aritmetički prosek deli zbir samo brojem ocenjenih namirnica. Prikaz daje pokrivenost prema svim vezanim namirnicama, a prosek zaokružuje na najviše jednu decimalu. Obračun se ponavlja iz aktuelnih pravila pri učitavanju, bez kolone za ocenu ili istorijske verzije pravila.
+
 **Izmeni obrok**: proveri vlasništvo → ažuriraj obrok i njegove veze transakciono; drugi obroci ostaju nepromenjeni.
 
 **Simptomi (#18)**: `/symptoms` → `requireUser()` → privatna istorija preko servisa; Server Action proverava sesiju, servis uzima trajnog vlasnika preko zajedničkog `requireOwner()` i validira Zod ulaz pre upisa. Naziv 1–200 znakova posle trim-a, obavezan ISO početak sa zonom, opciona celobrojna jačina 1–10 i napomena do 5000 znakova (trim; prazno → NULL). Klijent pretvara lokalno vreme postojećim DST-proverenim helperom. Vlasnik i završetak se ne prihvataju iz zahteva; svaki novi unos ima `ended_at = NULL`, više aktivnih je dozvoljeno. Čitanje ograničeno na vlasnika, started_at DESC, created_at DESC, id DESC; klijentu samo potrebna polja. Završavanje, izmene, brisanje, trajanje i posebna lista završenih čekaju tiket životnog ciklusa; predlozi naziva čekaju zahtev za ubrzanje unosa.
@@ -75,7 +84,7 @@ Tok: validacija naziva/vremena i liste namirnica → identifikacija ili kreiranj
 ## 6. Autentifikacija, privatnost i bezbednost
 - Google OIDC preko Auth.js v5 (`next-auth@5.0.0-beta.32`), kompatibilan sa Next.js 16 i React 19, uz asinhrone `headers()`/`cookies()` API-je. Svaki uspešno autentifikovan Google nalog je prihvaćen; prvi i ponovljeni pristup koriste isti tok bez registracionog formulara ili lozinke. Google traži samo `openid email profile`, uz `prompt=select_account`.
 - Šifrovana JWT sesija u HttpOnly, SameSite=Lax kolačiću (Secure na HTTPS). Podrazumevano trajanje određuje jedino `SESSION_MAX_AGE_SECONDS` u `src/lib/auth/config.ts` (7 dana); Auth.js primenjuje istu vrednost na JWT i kolačić. Auth.js session endpoint obnavlja rok važeće sesije. Nevažeći ili istekao token se odbija. Odjava briše sesiju iz tog pregledača, bez odjave Google naloga. Nema auth DB adaptera; trajni korisnici dnevnika uvedeni su zasebno kroz issue #11.
-- `/`, `/meals` i `/symptoms` pozivaju serverski `requireUser()` i bez verifikovanog identiteta preusmeravaju na `/login`. Auth.js GET/POST handler je na `/api/auth/[...nextauth]`; prijava i odjava koriste Server Actions. `/login` i `/api/health` su javni. Provera u layout-u ili prisustvo kolačića nisu dovoljni za zaštitu.
+- `/`, `/meals`, `/symptoms` i `/foods` pozivaju serverski `requireUser()` i bez verifikovanog identiteta preusmeravaju na `/login`. Auth.js GET/POST handler je na `/api/auth/[...nextauth]`; prijava i odjava koriste Server Actions. `/login` i `/api/health` su javni. Provera u layout-u ili prisustvo kolačića nisu dovoljni za zaštitu.
 - Lokalni OAuth callback: `http://localhost:3000/api/auth/callback/google`. `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` i `AUTH_URL` idu u `.env.local`; samo placeholderi u `.env.example`. Google tokeni se ne izlažu u sesiji klijenta. JWT callback čuva verifikovani Google `providerAccountId` (`sub`) kao stabilan identitet; Auth.js generisani korisnički UUID bez adaptera nije stabilan između prijava. Auth logger beleži samo kategoriju greške, bez uzroka, tokena ili profila. Lokalno podešavanje i ručna provera su u [README](../README.md#google-oauth-on-localhost). Apple i hosting su van issue #7.
 - Autorizacija na svakoj serverskoj operaciji, uključujući čitanje; nikad ne verovati `user_id` sa klijenta. Unose dnevnika, povezane namirnice i buduće izveštaje ograničiti na vlasnika na serveru, prema verifikovanom identitetu sesije.
 - Validacija svih Server Actions ulaza preko Zod; zaštita od prevelikih payload-a i ograničavanje zahteva prema potrebi.
@@ -85,16 +94,17 @@ Tok: validacija naziva/vremena i liste namirnica → identifikacija ili kreiranj
 - Pre hostinga i čuvanja stvarnih podataka proceniti obaveze privatnosti i regulatorni okvir; izolacija podataka po korisniku je obavezna od prvog trajnog unosa i testira se između dva naloga.
 
 ## 7. Datum, vreme i korisnički interfejs
-Trenutke čuvati kao `timestamptz`. Na unosu browser pretvara lokalno vreme uređaja u UTC ISO trenutak, a prikaz koristi trenutnu zonu uređaja. Nepostojeća vremena tokom DST prelaza se odbijaju; ponovljeni sat koristi prvi trenutak. Istorija je silazna po `occurred_at`, zatim `created_at` i ID-ju za stabilan redosled. Issue #13: `/` proverava sesiju i preusmerava na `/meals`. Zajednički `(protected)` layout sadrži okvir; stranice i operacije i dalje zasebno proveravaju identitet. Server čita istoriju i katalog postojećim servisom; klijent formatira/grupiše po lokalnom datumu. Desktop >=1024 px koristi sidebar od 240 px i tabelu; manji ekrani header i levi drawer. Telefon ima centrirani island sa jednom akcijom za obrok (plus i fork/knife SVG), desktop floating dugme dole desno. Meni sadrži Obroke i Simptome i označava aktivnu rutu u sidebar-u i drawer-u. Obroci i simptomi koriste isti responzivni dijalog, stanje greške, potvrdu odbacivanja i lokalni prikaz vremena; njihova floating kontrola ima plus, puls i pristupačan naziv „Dodaj simptom“. Nema tab bara ni neimplementiranih destinacija.
+Trenutke čuvati kao `timestamptz`. Na unosu browser pretvara lokalno vreme uređaja u UTC ISO trenutak, a prikaz koristi trenutnu zonu uređaja. Nepostojeća vremena tokom DST prelaza se odbijaju; ponovljeni sat koristi prvi trenutak. Istorija je silazna po `occurred_at`, zatim `created_at` i ID-ju za stabilan redosled. Issue #13: `/` proverava sesiju i preusmerava na `/meals`. Zajednički `(protected)` layout sadrži okvir; stranice i operacije i dalje zasebno proveravaju identitet. Server čita istoriju i katalog postojećim servisom; klijent formatira/grupiše po lokalnom datumu. Desktop >=1024 px koristi sidebar od 240 px i tabelu; manji ekrani header i levi drawer. Telefon ima centrirani island sa jednom akcijom za obrok (plus i fork/knife SVG), desktop floating dugme dole desno. Meni sadrži Obroke, Simptome i Namirnice i označava aktivnu rutu u sidebar-u i drawer-u. Obroci i simptomi koriste isti responzivni dijalog, stanje greške, potvrdu odbacivanja i lokalni prikaz vremena; plutajuća kontrola za simptome ima plus, puls i pristupačan naziv „Dodaj simptom“. Unutar Namirnica postoje tabovi „Sve namirnice“ i „Grupe“. Pretraga i filter kataloga rade nad vlasnikovim podacima, a editori koriste zajednički responzivni dijalog i mobilno zaglavlje za čuvanje.
 
 Unos koristi minimalni shadcn-style Dialog zasnovan na Radix UI (`@radix-ui/react-dialog`) za focus trap/restore, Escape i modalnu izolaciju. Unos obroka i simptoma na telefonu popunjava vidljivi ekran, sa zatvaranjem i čuvanjem u zaglavlju i početnim fokusom na naslovu. Kompaktni raspored važi ispod 640 px širine i na uređajima sa dodirnim primarnim pokazivačem kada je visina prozora do 500 px, što pokriva telefone u horizontalnom položaju. U ostalim slučajevima se koristi modal do 560 px, sa čuvanjem u podnožju i početnim fokusom na polju za naziv. Skroluje se telo formulara. `interactive-widget=resizes-content`, visualViewport resize/scroll i safe-area insets prilagođavaju panel tastaturi. Zajednički dijalog pri fokusiranju i promeni vidljivog ekrana po potrebi skroluje fokusirano polje u vidljivi deo forme. Oba autocomplete-a imaju combobox/listbox semantiku unutar focus trap-a, strelice/Enter/Escape i ograničen skrolujući dropdown. Enter ne šalje formu, Escape prvo zatvara otvoreni dropdown. Namirnice koriste normalizovanu contains pretragu. Na telefonu predlozi zauzimaju prostor ispod polja u formi. Dugme + je van liste predloga i dostupno za novi naziv čak i kad postoje slični rezultati. Tačna podudaranja se biraju iz liste, a već izabrane opcije se uklanjaju iz rezultata i prikazuju kao uklonjive oznake bez duplikata. Uspeh zatvara panel uz refresh i status, greška čuva unos. Tip se predlaže iz lokalnog datetime-local polja, bez UTC/server sata: [04:00,12:00) breakfast, [12:00,17:00) lunch, [17:00,24:00) dinner, [00:00,04:00) other. snack je ručni izbor. Promena vremena ažurira predlog samo do prvog ručnog izbora tipa; nova forma resetuje režim. Server validira poslatu vrednost i ne izvodi novi tip iz trenutka. Dirty stanje uključuje polja, ručni izbor tipa (i iste vrednosti), tagove i tekst pretrage; inicijalno vreme i automatski tip nisu izmena. Zatvaranje traži potvrdu za izmenjen unos, a tokom čuvanja je blokirano. Pregled rezerviše prostor za floating kontrolu. Stil i kontrolna lista: `.agents/skills/styling/SKILL.md`.
 
-**DECIDE NOW:** postojeći Server Actions, RHF/Zod i Radix-backed UI primitive ispunjavaju dogovoreni tok bez novog servisa. **DEFER:** paginacija/filteri do zahteva ili merljivog problema sa obimom. **NOT NEEDED:** generički design-system projekat (KISS/YAGNI, repozitorijumski engineering guide).
+**DECIDE NOW:** postojeći Server Actions, RHF/Zod i Radix-backed UI primitive ispunjavaju dogovoreni tok bez novog servisa. **DEFER:** paginacija do zahteva ili merljivog problema sa obimom. **NOT NEEDED:** generički design-system projekat (KISS/YAGNI, repozitorijumski engineering guide).
 
 ## 8. Testiranje i kvalitet
 - Unit: validacija, normalizacija naziva, završetak simptoma, vremenske granice.
 - Integration (test DB): transakcije, FK, izolacija po korisniku, očuvanje istorije, retroaktivne izmene.
 - Trenutni testovi za #18: Zod/action, aditivna migracija, dva sintetička vlasnika, više aktivnih unosa, retroaktivno vreme, desktop/mobile unos i refresh, navigacija, greška i potvrda odbacivanja. Završavanje, izmene/brisanje i hronologija testiraju se kada budu implementirani.
+- Za #23 unit testovi pokrivaju granice, prelaz preko ponoći, DST, neocenjene namirnice i preklapanje intervala. Integracioni testovi pokrivaju migraciju postojećih podataka, jedinstveni katalog, retroaktivni obračun i izolaciju dva naloga. Playwright proverava mobilni i desktop unos, uređivanje pravila i ocenu u istoj istoriji.
 - Za issue #7 CI koristi sintetičke Auth.js JWT sesije i proverava zaštitu rute, dva nezavisna identiteta, osvežavanje, istek, neispravan token i odjavu, bez pravih Google kredencijala. Stvarni izbor naloga, prvi i ponovljeni Google pristup proveravaju se ručno na localhost-u.
 - CI: lint, typecheck, test, build; migracije se primenjuju kontrolisano i odvojeno od build-a.
 
@@ -102,7 +112,7 @@ Unos koristi minimalni shadcn-style Dialog zasnovan na Radix UI (`@radix-ui/reac
 Hosting je zamenljiv (Vercel ili drugi Next.js kompatibilan hosting). PostgreSQL može biti managed servis. Konfigurisati odvojena dev i production okruženja, konekcioni pooling ako hosting koristi serverless runtime, kontrolisane migracije, nadzor grešaka bez osetljivih payload-a i budžetska upozorenja. Besplatan hosting nije arhitektonski zahtev.
 
 ## 10. Van obima i moguća evolucija
-- PDF izveštaji, analitika, pravila ishrane i AI su kasnije faze.
+- PDF izveštaji, analitika, ponderisanje količinama, istorijske verzije pravila ishrane i AI su kasnije faze.
 - Mobilna aplikacija (React Native/Expo) **nije planirana za MVP** i možda nikada neće biti napravljena. Ne uvoditi REST API samo zbog hipotetičkog mobilnog klijenta. Ako se pojavi potreba, postojeće servise izložiti kroz API ili preispitati arhitekturu; prepisivanje je prihvatljivo.
 - Bez CQRS, event bus-a, mikroservisa i zasebnog NestJS/.NET backend-a u prvoj verziji.
 
@@ -112,6 +122,7 @@ Hosting je zamenljiv (Vercel ili drugi Next.js kompatibilan hosting). PostgreSQL
 3. Potvrda brisanja ili undo; politika brisanja korišćenih namirnica.
 4. Backup interval, retencija, restore procedura i izvoz podataka.
 5. Izbor hostinga, deployment pipeline i konkretne verzije paketa.
+6. Članstvo i vremenske ocene razrešeni su u #23. Čuvaju se aktuelna pravila po vlasniku, a ponderisanje ili istorijske verzije razmatraju se ako ih kasniji izveštaj zahteva.
 
 ## 12. Razvoj uz Codex i GitHub
 
@@ -203,7 +214,7 @@ Početna faza je završena kada privatan repo ima obe specifikacije i starter ki
 | Hosting i backup/restore | Pre čuvanja stvarnih podataka | Ne biramo infrastrukturu prema hipotetičkom velikom opterećenju |
 | Pravilo za istoimene obroke | Tokom implementacije autocomplete-a; testirati na stvarnim primerima | Ne pravimo sistem šablona/recepata |
 | API za mobilni klijent | Tek kada postoji konkretan drugi klijent | Ne izlažemo REST API za moguću buduću aplikaciju |
-| PWA, AI, izveštaji i dijetetska pravila | Nakon korišćenja osnovnih funkcija i jasnog zahteva | Ne uvodimo njihove zavisnosti u MVP |
+| PWA, AI i izveštaji | Nakon korišćenja osnovnih funkcija i jasnog zahteva | Ne uvodimo njihove zavisnosti u MVP |
 | Novo arhitektonsko izdvajanje | Kada merljiv problem u održavanju, testiranju ili performansama opravda promenu | Ne uvodimo mikroservise radi predviđene skale |
 
 ### 13.3 Mini-protokol za sledeće zahteve i Codex
@@ -212,6 +223,8 @@ Pre svake značajne izmene: (1) definisati korisnički problem i kriterijum uspe
 **Status:** Ovo je smernica za buduće predloge i review; ne znači da su pomenute funkcionalnosti implementirane niti da su otvorene odluke rešene.
 
 ## Istorija izmena
+
+- **0.12 · 22.11.2026.** — Issue #23: grupa namirnica, aditivna migracija, vlasnički servisi i izvedeni obračun po lokalnom satu.
 
 - **0.11 · 17.11.2026.** — Issue #18: aditivna tabela simptoma, privatni servis/action i responzivni unos/pregled sa testovima.
 

@@ -14,5 +14,6 @@ export async function createMeal(input: unknown): Promise<{ ok: boolean; message
     return { ok: false, message: "Obrok nije sačuvan. Proverite unos i pokušajte ponovo." };
   }
   revalidatePath("/meals");
+  revalidatePath("/foods");
   return { ok: true, message: "Obrok je sačuvan." };
 }

@@ -1,6 +1,6 @@
 # Tracking Food — Funkcionalna dokumentacija
 
-Funkcionalna dokumentacija · Verzija 0.10 · 17.11.2026.
+Funkcionalna dokumentacija · Verzija 0.11 · 22.11.2026.
 
 Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik pristupa svom privatnom dnevniku preko Google naloga. Služi za brz unos sa telefona, pregled istorije i kasniju pripremu izveštaja za razgovor sa lekarom.
 
@@ -13,7 +13,7 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik
 
 ## Obroci
 
-- Pregled je početni ekran: na desktopu tabela Datum/vreme | Obrok | Namirnice | Napomena, na telefonu kompaktni redovi grupisani po lokalnom datumu. Dugi sadržaj može da se proširi preko „Prikaži više“.
+- Pregled je početni ekran: na desktopu tabela Datum/vreme | Obrok | Namirnice | Napomena | Ocena, na telefonu kompaktni redovi grupisani po lokalnom datumu. Dugi sadržaj može da se proširi preko „Prikaži više“.
 
 - Zaštićeni ekran `/meals` omogućava unos i privatnu istoriju od najnovijeg ka najstarijem po vremenu obroka. Unosi ostaju posle osvežavanja. Izmena i brisanje slede u narednim tiketima; privatni predlozi naziva uvedeni su u #16.
 
@@ -35,6 +35,17 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik
 
 - Svaki unos čuva svoj skup namirnica. Naziv je dovoljan za opis obroka. Fiksni tip obroka je obavezan za nove unose; korisničke kategorije i poseban editor recepata ili šablona nisu deo ove faze.
 
+- Lista prikazuje ocenu usklađenosti sa ličnim pravilima i pokrivenost, npr. „3,5/5 · 2/5 ocenjenih“. Prosek računa samo ocenjene namirnice, a broj ukupnih uključuje sve povezane namirnice. Ako nijedna nema ocenu za taj termin, piše „Nije ocenjeno“. Ocena koristi lokalno vreme konzumiranja u trenutnoj zoni uređaja. Vreme unosa i tip obroka ne učestvuju u obračunu.
+
+## Namirnice
+
+- Zaštićena stranica `/foods` ima tabove „Sve namirnice“ i „Grupe“. Katalog prikazuje sve namirnice prijavljenog korisnika, uključujući neocenjene, uz pretragu po nazivu i filtere po oceni i grupi. Unos direktno u katalogu, unos obroka i uređivanje grupe koriste isti katalog. Isti naziv posle postojeće normalizacije koristi postojeću namirnicu.
+- Grupa ima naziv, opcioni opis do 200 znakova, obaveznu osnovnu ocenu 1–5 i opcione vremenske ocene 1–5. U grupu se mogu pretraživanjem dodati postojeće namirnice ili upisati nove. Plutajuća akcija dodavanja prati aktivni tab. Uređivanje koristi isti mobilni dijalog kao Obroci, sa akcijom čuvanja u zaglavlju.
+- Jedna namirnica ima najviše jednu grupu. Dodavanje u drugu grupu premešta namirnicu. Članovi preuzimaju osnovnu ocenu i vremenska pravila grupe, a samostalna pravila se uklanjaju kad se dodela sačuva. Ako korisnik pre čuvanja vrati izbor na „Bez grupe“, vraćaju se samostalna pravila iz nacrta. Izvan grupe korisnik može da postavi samostalnu osnovnu ocenu, vremenske ocene ili ostavi namirnicu neocenjenu. Po uklanjanju iz grupe namirnica je neocenjena dok joj korisnik ne dodeli pravila.
+- Posle čuvanja izmene fokus se vraća na dugme za uređivanje ili na „Prikaži“ ako namirnica više ne odgovara filteru.
+- Vremenski intervali koriste lokalne cele sate. Početak je uključen, kraj isključen, a kraj pre početka označava prelaz preko ponoći. Intervali istog pravila imaju različite početak i kraj i ne mogu da se preklapaju. Za nepokriveno vreme koristi se osnovna ocena ako postoji.
+- Izmene ocena, intervala i pripadnosti grupi primenjuju se i na stare obroke. Istorijski naziv, sastojci i trenutak konzumiranja ostaju sačuvani.
+
 ## Simptomi
 
 - Issue #18 isporučuje zaštićenu stranicu `/symptoms`, dodavanje i privatnu istoriju, najnoviji početak prvi. Prikazuju se naziv, lokalni datum/vreme početka, opciona jačina i napomena, uz prazno stanje.
@@ -46,7 +57,7 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik
 
 - Dashboard prikazuje aktivne simptome i zajedničku hronologiju obroka, početaka i završetaka simptoma za izabrani dan ili period.
 
-- Trenutni okvir ima bočni meni od 1024 px i kompaktno zaglavlje sa levim drawer menijem na manjim ekranima. Meni prikazuje Obroke, Simptome, nalog i odjavu; aktivna stranica je označena. Na telefonu postoji donji centrirani island sa jednom akcijom za unos obroka; na desktopu dugme je dole desno. Simptomi imaju odgovarajuću plutajuću akciju za unos; Dashboard dobija navigaciju tek u svom tiketu.
+- Trenutni okvir ima bočni meni od 1024 px i kompaktno zaglavlje sa levim drawer menijem na manjim ekranima. Meni prikazuje Obroke, Simptome, Namirnice, nalog i odjavu; aktivna stranica je označena. Na telefonu postoji donji centrirani island sa jednom akcijom za unos obroka; na desktopu dugme je dole desno. Simptomi imaju odgovarajuću plutajuću akciju za unos; Dashboard dobija navigaciju tek u svom tiketu.
 
 - Podaci se čuvaju na serveru. Pristup je privatan, uz prijavu i kontrolu pristupa. Osnovna rezervna kopija je deo prve verzije.
 
@@ -54,15 +65,15 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik
 
 - Izveštaji za poslednjih 1, 2 ili 3 meseca prikazuju unose, učestalost namirnica i simptoma, trendove i vremenska poklapanja. PDF izvoz za lekara je deo ove faze. Poklapanja služe za pregled evidencije i razgovor sa lekarom.
 
-- Kasnija faza uvodi plan ishrane sa dozvoljenim, ograničenim i zabranjenim namirnicama. Pravila mogu da zavise od doba dana. Ocena obroka služi za povratnu informaciju uz slobodan unos i mesečni pregled učestalosti odstupanja.
+- Lična pravila na stranici Namirnice i ocena usklađenosti na listi Obroci uvedeni su u #23. Ocena služi za povratnu informaciju prema pravilima korisnika. Planiranje ishrane, pregled učestalosti odstupanja i PDF izveštaji čekaju naredne faze.
 
 ## Redosled razvoja i otvorene odluke
 
-- Redosled razvoja MVP-a je prijava i odjava, zatim unos i istorija obroka, zatim simptomi, pa osnovni Dashboard. Izveštaji, analitika i plan ishrane slede posle osnovnog Dashboard-a.
+- Redosled razvoja MVP-a je prijava i odjava, zatim unos i istorija obroka, zatim simptomi i Namirnice sa ocenom obroka. Osnovni Dashboard, izveštaji i analitika slede u narednim fazama.
 
 - Kalorije, makronutrijenti i AI preporuke izostavljeni su iz MVP-a. PWA i zasebna nativna mobilna aplikacija ostaju opcije za kasnije.
 
-- Otvorena je potvrda brisanja ili vraćanje unosa, detalji PDF izveštaja, skala ocenjivanja i konačan naziv proizvoda.
+- Otvorena je potvrda brisanja ili vraćanje unosa, detalji PDF izveštaja i konačan naziv proizvoda. Ponderisanje količinama i istorijske verzije pravila odloženi su do konkretne potrebe.
 
 ## Principi proizvoda i redosled odluka
 
@@ -70,17 +81,19 @@ Vodič za razvoj je knjiga dr Milana Milanovića „Laws of Software Engineering
 
 - Gall’s Law: isporučiti prvo kompletan, upotrebljiv tok za obroke (unos, čuvanje, istorija, izmena i brisanje), proveriti iskustvo korišćenja. Potvrđeni prioritet vlasnika u #18 uvodi unos simptoma pre izmena/brisanja obroka; Dashboard ostaje kasnije.
 
-- KISS i YAGNI: ne širiti obim MVP-a na recepte, kalorije, AI, PWA, ocene obroka ili napredne izveštaje pre konkretne potrebe.
+- KISS i YAGNI: ne širiti obim MVP-a na recepte, kalorije, AI, PWA ili napredne izveštaje pre konkretne potrebe.
 
 - Tesler’s Law: složenost obrade predloga obroka, vremena i namirnica treba da preuzme aplikacija kad god to pojednostavljuje unos; korisnik uvek može da pregleda i ispravi rezultat.
 
 - Princip najmanjeg iznenađenja: retroaktivni unos, promena vremena, završavanje simptoma i brisanje moraju imati očekivano i jasno ponašanje. Ne sugerisati uzročno-posledičnu vezu između obroka i simptoma.
 
-- Pravilo istoimenih obroka rešava #16 (poslednji pojeden); odluke o potvrdi brisanja donositi pri izradi tog toka; dizajn izveštaja i pravila ishrane odložiti do njihovih faza.
+- Pravilo istoimenih obroka rešava #16 (poslednji pojeden); odluke o potvrdi brisanja donositi pri izradi tog toka; dizajn izveštaja rešiti u njihovoj fazi. Pravila ishrane i skala 1–5 dogovoreni su u #23.
 
 - Zahtev za novu funkcionalnost prvo proceniti: potreba sada, odluka kasnije uz konkretan okidač ili funkcionalnost van obima. Prednost imaju brzina unosa, pouzdana istorija, privatnost i jednostavnost.
 
 ## Istorija izmena
+
+0.11 · 22.11.2026. — Issue #23: katalog Namirnice, grupe, vremenska pravila i retroaktivna ocena obroka.
 
 0.10 · 17.11.2026. — Issue #18: unos simptoma, privatna istorija i navigacija; životni ciklus odložen.
 
