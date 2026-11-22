@@ -49,6 +49,8 @@ export async function saveMeal(input: unknown) {
   return getDb().transaction(async (tx) => {
     const selected = new Map<string, { id: string; name: string }>();
     const ids = [...new Set(data.foodIds)];
+    // The foreign key on mealFoods also takes locks on existing catalog rows.
+    if (ids.length || data.newFoods.length) await lockFoodCatalog(tx, userId);
     if (ids.length) {
       const owned = await tx.select({ id: foods.id, name: foods.name }).from(foods)
         .where(and(eq(foods.userId, userId), inArray(foods.id, ids)));
@@ -56,7 +58,6 @@ export async function saveMeal(input: unknown) {
       for (const food of owned) selected.set(food.id, food);
     }
     if (data.newFoods.length) {
-      await lockFoodCatalog(tx, userId);
       for (const food of await upsertCatalogFoods(tx, userId, data.newFoods)) selected.set(food.id, food);
     }
     const [meal] = await tx.insert(meals).values({ userId, name: data.name, mealType: data.mealType, note: data.note, occurredAt: new Date(data.occurredAt) })

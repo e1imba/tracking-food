@@ -1,7 +1,7 @@
 "use client";
 
 import type { z } from "zod";
-import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { useFieldArray, useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createFood, editFood } from "../../app/actions/foods";
 import { CatalogForm, useCatalogEditor } from "./catalog-dialog";
@@ -11,6 +11,10 @@ import type { readFoodCatalog } from "./service";
 
 type Catalog = Awaited<ReturnType<typeof readFoodCatalog>>;
 type FoodRules = z.infer<typeof foodRulesSchema>;
+
+const resolveFoodRules = zodResolver(foodRulesSchema);
+const resolveFoodDraft: Resolver<FoodRules> = (draft, context, options) =>
+  resolveFoodRules(draft.groupId ? { ...draft, baseScore: null, timeRanges: [] } : draft, context, options);
 
 export function NewFoodForm() {
   const { submit } = useCatalogEditor();
@@ -32,8 +36,8 @@ export function FoodForm({ food, groups }: {
   food: Catalog["catalog"][number]; groups: Catalog["groups"];
 }) {
   const { submit } = useCatalogEditor();
-  const { register, handleSubmit, control, setValue, clearErrors, formState: { errors, isSubmitting, isDirty } } = useForm<FoodRules>({
-    resolver: zodResolver(foodRulesSchema),
+  const { register, handleSubmit, control, formState: { errors, isSubmitting, isDirty } } = useForm<FoodRules>({
+    resolver: resolveFoodDraft,
     defaultValues: { groupId: food.groupId, baseScore: food.baseScore, timeRanges: food.timeRanges },
   });
   const ranges = useFieldArray({ control, name: "timeRanges" });
@@ -43,16 +47,8 @@ export function FoodForm({ food, groups }: {
     onSubmit={handleSubmit(values => submit(() => editFood({ id: food.id, ...values })))}>
     <p className="catalog-title">{food.name}</p>
     <label className="field">Grupa
-      <select {...register("groupId", {
-        setValueAs: value => value || null,
-        onChange: event => {
-          if (event.target.value) {
-            setValue("baseScore", null, { shouldDirty: true });
-            setValue("timeRanges", [], { shouldDirty: true });
-            clearErrors(["baseScore", "timeRanges"]);
-          }
-        },
-      })} data-entry-autofocus className="control" defaultValue={food.groupId ?? ""}>
+      <select {...register("groupId", { setValueAs: value => value || null })}
+        data-entry-autofocus className="control" defaultValue={food.groupId ?? ""}>
         <option value="">Bez grupe</option>
         {groups.map(group => <option key={group.id} value={group.id}>{group.name}</option>)}
       </select>

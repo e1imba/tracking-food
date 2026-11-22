@@ -16,7 +16,7 @@ if (!process.env.TEST_DATABASE_URL || !new URL(process.env.TEST_DATABASE_URL).pa
 }
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 const db = getDb();
-const subjects = Array.from({ length: 4 }, () => `synthetic-foods-${randomUUID()}`);
+const subjects = Array.from({ length: 5 }, () => `synthetic-foods-${randomUUID()}`);
 const as = (index: number) => vi.mocked(requireUser).mockResolvedValue({ id: subjects[index], email: "same@example.test" });
 const group = { name: "Mlečni proizvodi", description: "Sintetička grupa", baseScore: 2, timeRanges: [{ startHour: 17, endHour: 4, score: 5 }], addedFoodIds: [], removedFoodIds: [], newFoods: [] };
 const meal = { name: "Sintetička večera", mealType: "breakfast", occurredAt: "2026-01-15T23:15:00Z", foodIds: [], newFoods: [] };
@@ -110,4 +110,20 @@ it("keeps one catalog row during concurrent creation and rejects unauthenticated
   await expect(addCatalogFood({ name: "Bez sesije" })).rejects.toThrow("redirect login");
   await expect(updateCatalogFood({ ...ungrouped, id: catalog[0].id })).rejects.toThrow("redirect login");
   await expect(saveFoodGroup(group)).rejects.toThrow("redirect login");
+});
+
+it("saves a meal with existing foods while a group deduplicates the same foods", async () => {
+  as(4);
+  const rice = await addCatalogFood({ name: "Pirinač" });
+  const yoghurt = await addCatalogFood({ name: "Jogurt" });
+
+  const [mealId, groupId] = await Promise.all([
+    saveMeal({ ...meal, foodIds: [rice, yoghurt] }),
+    saveFoodGroup({ ...group, newFoods: ["JOGURT", "PIRINAČ"] }),
+  ]);
+
+  const { catalog } = await readFoodCatalog();
+  expect(catalog).toMatchObject([{ id: yoghurt, groupId }, { id: rice, groupId }]);
+  const { history } = await readJournal();
+  expect(history).toMatchObject([{ id: mealId, foodIds: [yoghurt, rice] }]);
 });

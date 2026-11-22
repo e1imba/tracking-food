@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { normalizeFoodName } from "../meals/schema";
 import { CatalogDialog } from "./catalog-dialog";
 import { formatHour } from "./editor-fields";
@@ -30,8 +30,10 @@ export function CatalogView({ catalog, groups }: Awaited<ReturnType<typeof readF
   const [active, setActive] = useState(0);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-  const [message, setMessage] = useState("");
+  const [notice, setNotice] = useState<{ message: string; editedFoodId?: string }>({ message: "" });
   const tabList = useRef<HTMLDivElement>(null);
+  const filterControl = useRef<HTMLSelectElement>(null);
+  const catalogBeforeSave = useRef<typeof catalog | null>(null);
   const groupById = new Map(groups.map(group => [group.id, group]));
   const counts = new Map<string, number>();
   for (const food of catalog) {
@@ -49,9 +51,24 @@ export function CatalogView({ catalog, groups }: Awaited<ReturnType<typeof readF
       default: return food.groupId === filter;
     }
   });
+  const editedFoodVisible = filtered.some(food => food.id === notice.editedFoodId);
+  useEffect(() => {
+    // The refreshed catalog can remove the trigger that Radix restores focus to.
+    if (!catalogBeforeSave.current || catalogBeforeSave.current === catalog) return;
+    catalogBeforeSave.current = null;
+    if (!editedFoodVisible && document.activeElement === document.body) {
+      filterControl.current?.focus();
+    }
+  }, [catalog, editedFoodVisible, notice]);
+
+  function showMessage(message: string, editedFoodId?: string) {
+    catalogBeforeSave.current = editedFoodId ? catalog : null;
+    setNotice({ message, editedFoodId });
+  }
+
   function selectTab(index: number) {
     setActive(index);
-    setMessage("");
+    showMessage("");
   }
   return <>
     <div className="catalog-tabs" role="tablist" aria-label="Katalog namirnica" ref={tabList} onKeyDown={event => {
@@ -71,7 +88,7 @@ export function CatalogView({ catalog, groups }: Awaited<ReturnType<typeof readF
         aria-selected={active === index} aria-controls={tab.id} tabIndex={active === index ? 0 : -1}
         onClick={() => selectTab(index)}>{tab.label}</button>)}
     </div>
-    <p className="save-confirmation catalog-confirmation" role="status">{message}</p>
+    <p className="save-confirmation catalog-confirmation" role="status">{notice.message}</p>
     <section role="tabpanel" id="all-foods" aria-labelledby="tab-all-foods" hidden={active !== 0}>
       {active === 0 && <>
         <div className="catalog-tools">
@@ -79,7 +96,7 @@ export function CatalogView({ catalog, groups }: Awaited<ReturnType<typeof readF
             <input className="control" type="search" value={search} onChange={event => setSearch(event.target.value)} />
           </label>
           <label className="field">Prikaži
-            <select className="control" value={filter} onChange={event => setFilter(event.target.value)}>
+            <select ref={filterControl} className="control" value={filter} onChange={event => setFilter(event.target.value)}>
               <option value="all">Sve</option>
               <option value="rated">Ocenjene</option>
               <option value="unrated">Neocenjene</option>
@@ -89,7 +106,7 @@ export function CatalogView({ catalog, groups }: Awaited<ReturnType<typeof readF
           </label>
         </div>
         <div className="entry-island">
-          <CatalogDialog trigger={<button type="button" className="add-meal catalog-add"><span aria-hidden="true">＋</span>Dodaj namirnicu</button>} onSaved={setMessage}>
+          <CatalogDialog trigger={<button type="button" className="add-meal catalog-add"><span aria-hidden="true">＋</span>Dodaj namirnicu</button>} onSaved={showMessage}>
             <NewFoodForm />
           </CatalogDialog>
         </div>
@@ -102,7 +119,7 @@ export function CatalogView({ catalog, groups }: Awaited<ReturnType<typeof readF
                 {group ? <p>Grupa {group.name} · Nasleđena ocena</p> : <RuleSummary {...food} />}
               </div>
               <CatalogDialog trigger={<button type="button" className="secondary" aria-label={`Uredi namirnicu ${food.name}`}>Uredi</button>}
-                onSaved={setMessage}>
+                onSaved={message => showMessage(message, food.id)}>
                 <FoodForm food={food} groups={groups} />
               </CatalogDialog>
             </li>;
@@ -115,7 +132,7 @@ export function CatalogView({ catalog, groups }: Awaited<ReturnType<typeof readF
     <section role="tabpanel" className="groups-panel" id="food-groups" aria-labelledby="tab-food-groups" hidden={active !== 1}>
       {active === 1 && <>
         <div className="entry-island">
-          <CatalogDialog trigger={<button type="button" className="add-meal catalog-add"><span aria-hidden="true">＋</span>Dodaj grupu</button>} onSaved={setMessage}>
+          <CatalogDialog trigger={<button type="button" className="add-meal catalog-add"><span aria-hidden="true">＋</span>Dodaj grupu</button>} onSaved={showMessage}>
             <GroupForm catalog={catalog} />
           </CatalogDialog>
         </div>
@@ -130,7 +147,7 @@ export function CatalogView({ catalog, groups }: Awaited<ReturnType<typeof readF
                 <RuleSummary {...group} />
               </div>
               <CatalogDialog trigger={<button type="button" className="secondary" aria-label={`Uredi grupu ${group.name}`}>Uredi</button>}
-                onSaved={setMessage}>
+                onSaved={showMessage}>
                 <GroupForm group={group} catalog={catalog} />
               </CatalogDialog>
             </li>;

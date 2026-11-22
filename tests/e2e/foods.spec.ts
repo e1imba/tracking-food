@@ -62,13 +62,17 @@ test("catalog, groups and local rules update a previously logged meal across the
   await navigate(page, "Namirnice");
   await expect(row(page, "Krastavac")).toBeVisible();
   await page.getByRole("searchbox", { name: "Pretraži namirnice" }).fill("  ＰIRINAČ  ");
+  const filter = page.getByRole("combobox", { name: "Prikaži", exact: true });
+  await filter.selectOption("unrated");
   await expect(page.locator(".catalog-row")).toHaveCount(1);
-  await row(page, "Pirinač").getByRole("button", { name: "Uredi namirnicu Pirinač" }).click();
+  const editRice = row(page, "Pirinač").getByRole("button", { name: "Uredi namirnicu Pirinač" });
+  await editRice.focus();
+  await page.keyboard.press("Enter");
   await page.getByLabel("Osnovna ocena").selectOption("2");
+  await page.getByRole("button", { name: "Dodaj interval" }).click();
   await save(page, "Sačuvaj namirnicu");
-  await expect(row(page, "Pirinač")).toContainText("Osnovna ocena 2/5");
-  await page.getByRole("combobox", { name: "Prikaži", exact: true }).selectOption("unrated");
   await expect(page.getByRole("heading", { name: "Nema rezultata" })).toBeVisible();
+  await expect(filter).toBeFocused();
 
   await page.getByRole("tab", { name: "Sve namirnice" }).focus();
   await page.keyboard.press("ArrowRight");
@@ -117,18 +121,46 @@ test("catalog, groups and local rules update a previously logged meal across the
   await expect(page.locator(".catalog-row")).toHaveCount(2);
   await expect(row(page, "Jogurt")).toContainText("Nasleđena ocena");
   if (process.env.CAPTURE_FOOD_UI) await page.screenshot({ path: testInfo.outputPath("catalog.png") });
-  // The row remains visible after editing so focus can return to its trigger.
-  await page.getByRole("combobox", { name: "Prikaži", exact: true }).selectOption("all");
-  await row(page, "Jogurt").getByRole("button", { name: "Uredi namirnicu Jogurt" }).click();
+  const editJogurt = row(page, "Jogurt").getByRole("button", { name: "Uredi namirnicu Jogurt" });
+  await editJogurt.click();
   await expect(page.getByLabel("Osnovna ocena")).toHaveCount(0);
-  await page.getByRole("combobox", { name: "Grupa", exact: true }).selectOption("");
+  const group = page.getByRole("combobox", { name: "Grupa", exact: true });
+  await group.selectOption("");
   await page.getByLabel("Osnovna ocena").selectOption("4");
   await save(page, "Sačuvaj namirnicu");
+  await expect(editJogurt).toHaveCount(0);
+  await expect(filter).toBeFocused();
+  await filter.selectOption("all");
   await expect(row(page, "Jogurt")).toContainText("Osnovna ocena 4/5");
+
+  await editRice.click();
+  await group.selectOption({ label: "Mlečni proizvodi" });
+  await expect(page.getByLabel("Osnovna ocena")).toHaveCount(0);
+  await group.selectOption("");
+  await expect(page.getByLabel("Osnovna ocena")).toHaveValue("2");
+  await expect(interval.getByRole("combobox", { name: "Od", exact: true })).toHaveValue("4");
+  await expect(interval.getByRole("combobox", { name: "Do", exact: true })).toHaveValue("12");
+  await expect(interval.getByRole("combobox", { name: "Ocena", exact: true })).toHaveValue("3");
+  await save(page, "Sačuvaj namirnicu");
+  await expect(editRice).toBeFocused();
+  await expect(row(page, "Pirinač")).toContainText("Osnovna ocena 2/5");
+  await expect(row(page, "Pirinač")).toContainText("04:00–12:00 · 3/5");
   await navigate(page, "Obroci");
   await expect(rating).toContainText("3/5 · 2/3 ocenjenih");
   await expect(page.locator(".meal-name:visible, .meal-row h3:visible")).toContainText("Retroaktivni obrok");
   await expect(page.getByText(/Jogurt.*Krastavac.*Pirinač/).filter({ visible: true })).toBeVisible();
+
+  await navigate(page, "Namirnice");
+  await editRice.click();
+  await group.selectOption({ label: "Mlečni proizvodi" });
+  await save(page, "Sačuvaj namirnicu");
+  await expect(row(page, "Pirinač")).toContainText("Nasleđena ocena");
+  await editRice.click();
+  await group.selectOption("");
+  await expect(page.getByLabel("Osnovna ocena")).toHaveValue("");
+  await expect(interval).toHaveCount(0);
+  await save(page, "Sačuvaj namirnicu");
+  await expect(row(page, "Pirinač")).toContainText("Nije ocenjeno");
 
   const other = await browser.newContext({ baseURL: AUTH_TEST_ORIGIN });
   try {
