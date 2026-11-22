@@ -2,15 +2,15 @@ import "server-only";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { requireOwner } from "../../lib/auth/require-owner";
 import { getDb } from "../../lib/db";
-import { foods, mealFoods, meals } from "../../lib/db/schema";
+import { foodGroups, foods, mealFoods, meals } from "../../lib/db/schema";
 import type { MealType } from "./meal-types";
-import { mealInputSchema, normalizeFoodName } from "./schema";
+import { mealInputSchema } from "./schema";
+import { lockFoodCatalog, upsertCatalogFoods } from "../foods/catalog-db";
+import type { ScoringRules } from "../foods/scoring";
 
 export async function readJournal() {
   const userId = await requireOwner();
   const db = getDb();
-  const catalog = await db.select({ id: foods.id, name: foods.name }).from(foods)
-    .where(eq(foods.userId, userId)).orderBy(asc(foods.name));
   const rows = await db.select({
     id: meals.id, name: meals.name, mealType: meals.mealType, note: meals.note, occurredAt: meals.occurredAt,
     food: mealFoods.foodNameSnapshot, foodId: mealFoods.foodId,
@@ -25,7 +25,22 @@ export async function readJournal() {
     }
     if (row.food !== null && row.foodId !== null) { meal.foods.push(row.food); meal.foodIds.push(row.foodId); }
   }
-  return { catalog, history };
+  // Read rules after the links so even concurrently added catalog entries can be resolved.
+  const catalogRows = await db.select({
+    id: foods.id, name: foods.name, baseScore: foods.baseScore, timeRanges: foods.timeRanges,
+    groupScore: foodGroups.baseScore, groupRanges: foodGroups.timeRanges,
+  }).from(foods).leftJoin(foodGroups, and(eq(foods.groupId, foodGroups.id), eq(foodGroups.userId, userId)))
+    .where(eq(foods.userId, userId)).orderBy(asc(foods.name));
+  const rulesByFood: Record<string, ScoringRules> = {};
+  const linkedIds = new Set(history.flatMap(meal => meal.foodIds));
+  for (const food of catalogRows) {
+    const baseScore = food.groupScore ?? food.baseScore;
+    const timeRanges = food.groupRanges ?? food.timeRanges;
+    if (linkedIds.has(food.id) && (baseScore !== null || timeRanges.length)) {
+      rulesByFood[food.id] = { baseScore, timeRanges };
+    }
+  }
+  return { catalog: catalogRows.map(({ id, name }) => ({ id, name })), history, rulesByFood };
 }
 
 export async function saveMeal(input: unknown) {
@@ -40,13 +55,9 @@ export async function saveMeal(input: unknown) {
       if (owned.length !== ids.length) throw new Error("Invalid food selection");
       for (const food of owned) selected.set(food.id, food);
     }
-    // Stable order avoids lock inversion when two submissions add the same names.
-    const additions = new Map(data.newFoods.map((name) => [normalizeFoodName(name), name]));
-    for (const [normalizedName, name] of [...additions].sort(([a], [b]) => a.localeCompare(b))) {
-      const [food] = await tx.insert(foods).values({ userId, name, normalizedName })
-        .onConflictDoUpdate({ target: [foods.userId, foods.normalizedName], set: { normalizedName } })
-        .returning({ id: foods.id, name: foods.name });
-      selected.set(food.id, food);
+    if (data.newFoods.length) {
+      await lockFoodCatalog(tx, userId);
+      for (const food of await upsertCatalogFoods(tx, userId, data.newFoods)) selected.set(food.id, food);
     }
     const [meal] = await tx.insert(meals).values({ userId, name: data.name, mealType: data.mealType, note: data.note, occurredAt: new Date(data.occurredAt) })
       .returning({ id: meals.id });

@@ -50,7 +50,7 @@ export function JournalEntryDialogContent({ children }: { children: ReactNode })
     onInteractOutside={event => event.preventDefault()}
     onOpenAutoFocus={event => {
       const headerSave = dialog.current?.querySelector(".entry-save-mobile");
-      const selector = headerSave?.getClientRects().length ? "h2" : 'input[name="name"]';
+      const selector = headerSave?.getClientRects().length ? "h2" : '[data-entry-autofocus], input[name="name"]';
       const target = dialog.current?.querySelector<HTMLElement>(selector);
       if (target) {
         event.preventDefault();

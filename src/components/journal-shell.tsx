@@ -12,7 +12,7 @@ export function JournalShell({ account, children }: { account: string; children:
   function navigation() {
     return <>
       <div className="brand">Tracking Food<span>Lični dnevnik</span></div>
-      <nav aria-label="Glavna navigacija">{[["/meals", "Obroci"], ["/symptoms", "Simptomi"]].map(([href, label]) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined} className={pathname === href ? "nav-link nav-active" : "nav-link"} onClick={() => setOpen(false)}>{label}</Link>)}</nav>
+      <nav aria-label="Glavna navigacija">{[["/meals", "Obroci"], ["/symptoms", "Simptomi"], ["/foods", "Namirnice"]].map(([href, label]) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined} className={pathname === href ? "nav-link nav-active" : "nav-link"} onClick={() => setOpen(false)}>{label}</Link>)}</nav>
       <div className="account"><p>{account}</p><form action={logout}><button className="secondary" type="submit">Odjavi se</button></form></div>
     </>;
   }
