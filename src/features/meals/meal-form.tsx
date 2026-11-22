@@ -5,7 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createMeal } from "../../app/actions/meals";
-import { DialogDescription, DialogTitle } from "../../components/ui/dialog";
+import { EntryFormHeader } from "../../components/journal-entry-dialog";
 import { localDateTime, localTimeToInstant, mealFormSchema, nameSchema, normalizeFoodName, type MealFormValues } from "./schema";
 import { Autocomplete } from "./autocomplete";
 import { MEAL_TYPES, suggestedMealType } from "./meal-types";
@@ -64,7 +64,7 @@ export function MealForm({ catalog, suggestions, onClose, onDirtyChange, onSavin
     setFoodFeedback(`Dodato: ${parsed.data}.`);
   }
   const saveLabel = isSubmitting ? "Čuvanje…" : "Sačuvaj obrok";
-  return <form className="meal-form" onSubmit={handleSubmit(async values => {
+  return <form className="entry-form" onSubmit={handleSubmit(async values => {
     setMessage("");
     onSavingChange(true);
     try {
@@ -74,17 +74,9 @@ export function MealForm({ catalog, suggestions, onClose, onDirtyChange, onSavin
     } catch { setMessage("Obrok nije sačuvan. Proverite lokalni datum i vreme i pokušajte ponovo."); }
     finally { onSavingChange(false); }
   })}>
-    <header className="panel-heading meal-heading">
-      <div>
-        <DialogTitle tabIndex={-1}>Novi obrok</DialogTitle>
-        <DialogDescription>Sačuvajte obrok u svoj privatni dnevnik.</DialogDescription>
-      </div>
-      <button className="icon-button" type="button" aria-label="Zatvori unos" onClick={onClose}>×</button>
-      <button className="primary meal-save-mobile" aria-label={saveLabel} disabled={isSubmitting} type="submit">
-        {isSubmitting ? saveLabel : "Sačuvaj"}
-      </button>
-    </header>
-    <p className="meal-save-status" role="status">{message}</p>
+    <EntryFormHeader title="Novi obrok" description="Sačuvajte obrok u svoj privatni dnevnik."
+      saveLabel={saveLabel} isSubmitting={isSubmitting} onClose={onClose} />
+    <p className="entry-save-status" role="status">{message}</p>
     <div className="form-scroll"><fieldset disabled={isSubmitting} className="min-w-0">
       <Autocomplete label="Naziv obroka" value={mealName} options={matchingMeals(suggestions, mealName)}
         onChange={value => setValue("name", value, { shouldDirty: true })}
@@ -124,6 +116,6 @@ export function MealForm({ catalog, suggestions, onClose, onDirtyChange, onSavin
       </fieldset>
       <label className="field">Napomena (opciono)<textarea {...register("note")} maxLength={5000} rows={3} className="control" aria-invalid={!!errors.note} />{errors.note && <span role="alert">Napomena može imati do 5000 znakova.</span>}</label>
     </fieldset></div>
-    <footer className="form-footer meal-save-desktop"><button className="primary" disabled={isSubmitting} type="submit">{saveLabel}</button></footer>
+    <footer className="form-footer"><button className="primary" disabled={isSubmitting} type="submit">{saveLabel}</button></footer>
   </form>;
 }

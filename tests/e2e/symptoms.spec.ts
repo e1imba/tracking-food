@@ -23,8 +23,8 @@ test("drawer, modal focus, Escape, discard and failed save retain input", async 
   await page.goto("/symptoms");
   await openEntry(page);
   const name = page.getByLabel("Naziv simptoma");
-  await expect(name).toBeFocused();
-  await page.keyboard.press("Shift+Tab");
+  await expect(page.getByRole("heading", { name: "Novi simptom" })).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(page.getByRole("button", { name: "Zatvori unos" })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -51,17 +51,24 @@ for (const width of [360, 390, 768, 1440]) {
     await page.goto("/symptoms");
     await expect(page.getByText("Još nema sačuvanih simptoma.")).toBeVisible();
     await openEntry(page);
-    await page.getByLabel("Naziv simptoma").fill("Sintetički ručak — " + "dugačaknaziv".repeat(12));
+    const name = page.getByLabel("Naziv simptoma");
+    if (width >= 640) await expect(name).toBeFocused();
+    await name.fill("Sintetički simptom — " + "dugačaknaziv".repeat(12));
     await page.getByLabel("Datum i vreme početka", { exact: true }).fill("2026-01-10T12:30");
     await page.getByLabel("Jačina (opciono)").fill("7");
     const note = "Duga sintetička napomena bez privatnih podataka. ".repeat(12);
     await page.getByLabel("Napomena (opciono)").fill(note);
-    // A reduced viewport exercises the same footer layout used with a keyboard.
+    // A smaller window exercises the layout without a native software keyboard.
     await page.setViewportSize({ width, height: 480 });
     await page.getByLabel("Napomena (opciono)").focus();
     await expect(page.getByRole("button", { name: "Sačuvaj simptom" })).toBeInViewport();
-    const footer = await page.getByRole("button", { name: "Sačuvaj simptom" }).boundingBox();
-    expect(footer!.y + footer!.height).toBeLessThanOrEqual(480);
+    const save = await page.getByRole("button", { name: "Sačuvaj simptom" }).boundingBox();
+    expect(save!.y + save!.height).toBeLessThanOrEqual(480);
+    if (width < 640) {
+      const dialog = page.getByRole("dialog", { name: "Novi simptom" });
+      expect(await dialog.boundingBox()).toMatchObject({ x: 0, y: 0, width, height: 480 });
+      expect(save!.y).toBeLessThan(64);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.setViewportSize({ width, height: 900 });
     await page.getByRole("button", { name: "Sačuvaj simptom" }).click();
@@ -97,6 +104,37 @@ for (const width of [360, 390, 768, 1440]) {
     }
   });
 }
+
+test("mobile entry keeps the focused note and header actions visible above the keyboard", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/symptoms");
+  await openEntry(page);
+  const dialog = page.getByRole("dialog", { name: "Novi simptom" });
+  await dialog.getByLabel("Naziv simptoma").fill("Sintetički simptom sa napomenom");
+  const note = dialog.getByLabel("Napomena (opciono)");
+  await note.fill("Sintetička napomena");
+  // Simulate a keyboard shrinking and panning the visual viewport only.
+  await page.evaluate(() => {
+    const viewport = window.visualViewport!;
+    Object.defineProperties(viewport, {
+      height: { value: 300 },
+      offsetTop: { value: 0, configurable: true },
+    });
+    viewport.dispatchEvent(new Event("resize"));
+    Object.defineProperty(viewport, "offsetTop", { value: 28 });
+    viewport.dispatchEvent(new Event("scroll"));
+  });
+  await expect.poll(() => dialog.boundingBox()).toMatchObject({ x: 0, y: 28, width: 390, height: 300 });
+  await expect(note).toBeFocused();
+  await expect(note).toBeInViewport({ ratio: 1 });
+  const header = dialog.locator("header");
+  await expect(header.getByRole("button", { name: "Zatvori unos" })).toBeInViewport({ ratio: 1 });
+  const save = header.getByRole("button", { name: "Sačuvaj simptom" });
+  await expect(save).toBeInViewport({ ratio: 1 });
+  await save.click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole("status")).toHaveText("Simptom je sačuvan.");
+});
 
 test("protects symptoms from unauthenticated access and a second account", async ({ page, browser }) => {
   await page.goto("/symptoms");
