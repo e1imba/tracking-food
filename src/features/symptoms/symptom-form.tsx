@@ -5,10 +5,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { createSymptom } from "../../app/actions/symptoms";
+import { EntryFormHeader } from "../../components/journal-entry-dialog";
 import { localDateTime, localTimeToInstant } from "../meals/schema";
 import { symptomFormSchema, type SymptomFormValues } from "./schema";
 
-export function SymptomForm({ onDirtyChange, onSavingChange, onSuccess }: {
+export function SymptomForm({ onClose, onDirtyChange, onSavingChange, onSuccess }: {
+  onClose: () => void;
   onDirtyChange: (dirty: boolean) => void;
   onSavingChange: (saving: boolean) => void;
   onSuccess: () => void;
@@ -27,7 +29,8 @@ export function SymptomForm({ onDirtyChange, onSavingChange, onSuccess }: {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [isDirty]);
-  return <form className="meal-form" onSubmit={handleSubmit(async values => {
+  const saveLabel = isSubmitting ? "Čuvanje…" : "Sačuvaj simptom";
+  return <form className="entry-form" onSubmit={handleSubmit(async values => {
     setMessage("");
     onSavingChange(true);
     try {
@@ -38,8 +41,11 @@ export function SymptomForm({ onDirtyChange, onSavingChange, onSuccess }: {
     } catch { setMessage("Simptom nije sačuvan. Proverite lokalni datum i vreme i pokušajte ponovo."); }
     finally { onSavingChange(false); }
   })}>
+    <EntryFormHeader title="Novi simptom" description="Sačuvajte simptom u svoj privatni dnevnik."
+      saveLabel={saveLabel} isSubmitting={isSubmitting} onClose={onClose} />
+    <p className="entry-save-status" role="status">{message}</p>
     <div className="form-scroll"><fieldset disabled={isSubmitting} className="min-w-0">
-      <label className="field">Naziv simptoma<input {...register("name")} required maxLength={200} autoFocus className="control" aria-invalid={!!errors.name} aria-describedby={errors.name ? "symptom-name-error" : undefined} /></label>
+      <label className="field">Naziv simptoma<input {...register("name")} required maxLength={200} className="control" aria-invalid={!!errors.name} aria-describedby={errors.name ? "symptom-name-error" : undefined} /></label>
       {errors.name && <span id="symptom-name-error" role="alert">Unesite naziv (do 200 znakova).</span>}
       <label className="field">Datum i vreme početka<input {...register("localTime")} type="datetime-local" required className="control" aria-invalid={!!errors.localTime} aria-describedby="symptom-time-help" /></label>
       {errors.localTime && <span role="alert">Unesite datum i vreme početka.</span>}
@@ -50,6 +56,6 @@ export function SymptomForm({ onDirtyChange, onSavingChange, onSuccess }: {
       <label className="field">Napomena (opciono)<textarea {...register("note")} maxLength={5000} rows={3} className="control" aria-invalid={!!errors.note} /></label>
       {errors.note && <span role="alert">Napomena može imati do 5000 znakova.</span>}
     </fieldset></div>
-    <footer className="form-footer"><p role="status">{message}</p><button className="primary" disabled={isSubmitting} type="submit">{isSubmitting ? "Čuvanje…" : "Sačuvaj simptom"}</button></footer>
+    <footer className="form-footer"><button className="primary" disabled={isSubmitting} type="submit">{saveLabel}</button></footer>
   </form>;
 }

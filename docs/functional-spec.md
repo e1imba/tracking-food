@@ -38,7 +38,7 @@ Tracking Food je radni naziv ličnog dnevnika ishrane i simptoma. Svaki korisnik
 ## Simptomi
 
 - Issue #18 isporučuje zaštićenu stranicu `/symptoms`, dodavanje i privatnu istoriju, najnoviji početak prvi. Prikazuju se naziv, lokalni datum/vreme početka, opciona jačina i napomena, uz prazno stanje.
-- Plutajuće dugme „Dodaj simptom“ sa plusom i ikonicom pulsa otvara bottom sheet na telefonu i modal na desktopu. Obavezni su naziv u slobodnom tekstu i datum/vreme početka (podrazumevano sada, ranije vreme dozvoljeno); jačina 1–10 i napomena su opcione. Uspeh zatvara unos i osvežava istoriju; greška čuva polja, a zatvaranje izmenjene forme traži potvrdu.
+- Plutajuće dugme „Dodaj simptom“ sa plusom i ikonicom pulsa otvara formu preko celog vidljivog ekrana na telefonu, sa zatvaranjem i čuvanjem u zaglavlju. Na desktopu se otvara centrirani modal sa čuvanjem u podnožju. Telo forme se skroluje, a fokusirano polje ostaje dostupno uz otvorenu tastaturu. Obavezni su naziv u slobodnom tekstu i datum/vreme početka (podrazumevano sada, ranije vreme dozvoljeno); jačina 1–10 i napomena su opcione. Uspeh zatvara unos i osvežava istoriju; greška čuva polja, a zatvaranje izmenjene forme traži potvrdu.
 - Novi simptomi imaju prazno vreme završetka i ostaju aktivni. Više aktivnih simptoma je dozvoljeno; svaki nalog vidi samo svoje unose, uključujući posle osvežavanja.
 - **Planirano za naredni tiket životnog ciklusa:** završavanje (sada ili ranije, od početka nadalje), izmena, brisanje, odvojeni završeni simptomi i trajanje. Predlozi naziva čekaju konkretan zahtev za ponavljani unos. Ove akcije trenutno nisu prikazane.
 
