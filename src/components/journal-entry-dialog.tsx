@@ -49,7 +49,8 @@ export function JournalEntryDialogContent({ children }: { children: ReactNode })
   return <DialogContent ref={attachDialog} className="entry-dialog"
     onInteractOutside={event => event.preventDefault()}
     onOpenAutoFocus={event => {
-      const selector = window.matchMedia("(min-width: 640px)").matches ? 'input[name="name"]' : "h2";
+      const headerSave = dialog.current?.querySelector(".entry-save-mobile");
+      const selector = headerSave?.getClientRects().length ? "h2" : 'input[name="name"]';
       const target = dialog.current?.querySelector<HTMLElement>(selector);
       if (target) {
         event.preventDefault();

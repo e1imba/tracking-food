@@ -102,7 +102,7 @@ input[type=datetime-local] { appearance: none; }
 .panel-heading .entry-save-mobile { display: none; }
 .entry-save-status { flex-shrink: 0; color: #a12c23; font-size: 13px; }
 .entry-save-status:not(:empty) { padding: 8px 20px; }
-@media (width < 640px) {
+@media (width < 640px), (pointer: coarse) and (height <= 500px) {
   .panel-heading { align-items: center; gap: 8px; padding: calc(6px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left)); }
   .panel-heading h2 { font-size: 18px; line-height: 1.2; }
   .panel-heading p { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
@@ -114,6 +114,8 @@ input[type=datetime-local] { appearance: none; }
 }
 @media (min-width: 640px) {
   .journal-main { padding-left: 32px; padding-right: 32px; }
+}
+@media (width >= 640px) and (not ((pointer: coarse) and (height <= 500px))) {
   .entry-dialog { top: calc(var(--visible-top, 0px) + var(--visible-height, 100dvh) / 2); left: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100vw - 48px)); height: auto; max-height: calc(var(--visible-height, 100dvh) * .9); border-radius: 16px; }
   .entry-form { overflow: hidden; }
   .entry-save-status { order: 1; }

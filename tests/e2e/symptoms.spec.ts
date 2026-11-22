@@ -136,6 +136,45 @@ test("mobile entry keeps the focused note and header actions visible above the k
   await expect(page.getByRole("status")).toHaveText("Simptom je sačuvan.");
 });
 
+test.describe("landscape phone entry", () => {
+  test.use({ hasTouch: true, viewport: { width: 844, height: 390 } });
+
+  for (const { path, add, title, name, field, value, save, status } of [
+    { path: "/symptoms", add: "Dodaj simptom", title: "Novi simptom", name: "Naziv simptoma",
+      field: "Jačina (opciono)", value: "7", save: "Sačuvaj simptom", status: "Simptom je sačuvan." },
+    { path: "/meals", add: "Dodaj obrok", title: "Novi obrok", name: "Naziv obroka",
+      field: "Pretraži ili dodaj namirnicu", value: "Sintetička namirnica", save: "Sačuvaj obrok", status: "Obrok je sačuvan." },
+  ]) {
+    test(`${title} keeps the focused field and header actions visible at 168px`, async ({ page }) => {
+      await page.goto(path);
+      await page.getByRole("button", { name: add, exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: title });
+      await expect(dialog.getByRole("heading", { name: title })).toBeFocused();
+      await dialog.getByLabel(name).fill("Sintetički unos");
+      const focusedField = dialog.getByLabel(field, { exact: true });
+      await focusedField.fill(value);
+
+      // The keyboard leaves just 168px without changing the layout viewport.
+      await page.evaluate(() => {
+        const viewport = window.visualViewport!;
+        Object.defineProperties(viewport, { height: { value: 168 }, offsetTop: { value: 24 } });
+        viewport.dispatchEvent(new Event("resize"));
+      });
+
+      await expect.poll(() => dialog.boundingBox()).toMatchObject({ x: 0, y: 24, width: 844, height: 168 });
+      await expect(focusedField).toBeFocused();
+      await expect(focusedField).toBeInViewport({ ratio: 1 });
+      const header = dialog.locator("header");
+      await expect(header.getByRole("button", { name: "Zatvori unos" })).toBeInViewport({ ratio: 1 });
+      const saveButton = header.getByRole("button", { name: save });
+      await expect(saveButton).toBeInViewport({ ratio: 1 });
+      await saveButton.click();
+      await expect(dialog).toHaveCount(0);
+      await expect(page.getByRole("status")).toHaveText(status);
+    });
+  }
+});
+
 test("protects symptoms from unauthenticated access and a second account", async ({ page, browser }) => {
   await page.goto("/symptoms");
   await openEntry(page);
